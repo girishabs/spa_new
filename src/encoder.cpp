@@ -54,16 +54,9 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 #endif		
 		for (uint i = 0; i < id; i ++)
 		{
-			if(i == 0)
-			{
-				BBMemoryEval *evalBB = static_cast<struct BBMemoryEval *>(&bb->evalBB);
-				gpt = &evalBB->common.pubKey[round];
-			}
-			else
-			{
-	 			BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[i]);
-	 			gpt = &bidderBB->common.pubKey[round];
-	 		}
+	 		BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[i]);
+	 		gpt = &bidderBB->pubKey[round];
+	 		
 	 		GroupElement pubKey = GroupElement(grp, gpt);
 #ifdef DEBUG
         	printf("yn: publickey[%d][%d] is :\n",i,round);
@@ -102,7 +95,7 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 		{
 	
 			BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[i]);
-	 		gpt = static_cast< GrpPoint *>(&bidderBB->common.pubKey[round]);
+	 		gpt = static_cast< GrpPoint *>(&bidderBB->pubKey[round]);
 	 		GroupElement pubKey = GroupElement(grp, gpt);
 #ifdef DEBUG	 		
         	printf("yd: publickey[%d][%d] is :\n",i,round);
@@ -129,7 +122,7 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 
 }
 
-bool Encoder::decodeBitcode(uint j, Eval* eval)
+bool Encoder::decodeBitcode(uint j, Bidder* bidder)
 {
 	GroupElement e = GroupElement(grp);
 	grp->dupGroupElement(&e, grp->ident);
@@ -152,15 +145,15 @@ bool Encoder::decodeBitcode(uint j, Eval* eval)
 		printf("e.ep is\n");
 		grp->printGroupElement(&e);
 		printf("bitcode[%d][%d] is:\n",i,j);
-		grp->printGroupElement(&eval->bidderBitcode[i][j]);
+		grp->printGroupElement(&bidder->bidderBitcode[i][j]);
 #endif		
 		
-		grp->elementMultiply(&e, &e, eval->bidderBitcode[i]);
+		grp->elementMultiply(&e, &e, bidder->bidderBitcode[i]);
 #ifdef DEBUG		
 		printf("Computed e[%d][%d] is:\n",i,j);
 		grp->printGroupElement(&e);
 		printf("bitcode[%d][%d] after decode is:\n",i,j);
-		grp->printGroupElement(&eval->bidderBitcode[i][j]);
+		grp->printGroupElement(&bidder->bidderBitcode[i][j]);
 #endif		
 	}
 

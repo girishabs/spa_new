@@ -8,11 +8,14 @@
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <cstdint>
+#include <openssl/sha.h>
 #include "group.h"
+
 
 
 using namespace std;
 using namespace boost::interprocess;
+
 
 
 typedef unsigned int uint;
@@ -20,8 +23,8 @@ typedef unsigned int uint;
 // Change the following for varying the number of bidders and length of bit string.
 // Note that this change recompiles all files.
 
-#define MAX_BIT_LENGTH 10
-#define MAX_BIDDERS 5
+#define MAX_BIT_LENGTH 4
+#define MAX_BIDDERS 2
 
 
 #define D 1000
@@ -61,39 +64,35 @@ typedef enum ProcessTypes
 	pVerifier
 } PType;
 
-struct BBMemoryCommon
+struct BBMemoryBidder
 {
 	GrpPoint commitment;
 	GrpPoint pubKey[MAX_BIT_LENGTH];
-};
-struct BBMemoryBidder
-{
-	struct BBMemoryCommon common;
+	
+	// OT Parameters
 	GrpPoint msgEnc_0[MAX_BIT_LENGTH];
 	GrpPoint msgEnc_1[MAX_BIT_LENGTH];
+	GrpPoint eta[MAX_BIT_LENGTH];
+	GrpPoint G[MAX_BIT_LENGTH];
+	GrpPoint H[MAX_BIT_LENGTH];
+	GrpPoint zeta[MAX_BIT_LENGTH];
 	GrpPoint z[MAX_BIT_LENGTH];
+	GrpPoint T;
+	GrpPoint bitCode[MAX_BIT_LENGTH];
 	bool bidBits[MAX_BIT_LENGTH];
 };
-struct BBMemoryEval
-{
-	struct BBMemoryCommon common;
-	GrpPoint G[MAX_BIDDERS+1][MAX_BIT_LENGTH];
-	GrpPoint H[MAX_BIDDERS+1][MAX_BIT_LENGTH];
-	GrpPoint T2[MAX_BIDDERS+1][MAX_BIT_LENGTH];
-	GrpPoint T1;
-};
+
 struct BulletinBoard
 {
-	struct BBMemoryEval evalBB;
 	struct BBMemoryBidder bidderBB[MAX_BIDDERS];
-	uint evalUpdatedRound;
 	uint OTParamsUpdated[MAX_BIDDERS][MAX_BIT_LENGTH];
-	uint bidderUpdatedRound[MAX_BIDDERS+1];
-	bool setupStageDone[MAX_BIDDERS+1];
-	bool computeStageDone[MAX_BIDDERS+1];
-	bool verifyStageDone[MAX_BIDDERS+1];
+	uint bidderUpdatedRound[MAX_BIDDERS];
+	bool sentBitCodes[MAX_BIDDERS][MAX_BIT_LENGTH];
+	bool setupStageDone[MAX_BIDDERS];
+	bool computeStageDone[MAX_BIDDERS];
+	bool verifyStageDone[MAX_BIDDERS];
 
-	bool computeBit[MAX_BIDDERS+1][MAX_BIT_LENGTH]; // All bidders + evaluator
+	bool computeBit[MAX_BIDDERS][MAX_BIT_LENGTH]; // All bidders
 	bool winBit[MAX_BIT_LENGTH];
 	uint winningBid;
 	zqPoint bidderWinProof[MAX_BIDDERS];
@@ -109,8 +108,6 @@ struct BulletinBoard
 	zqPoint sWinner[MAX_BIT_LENGTH]; 
 	zqPoint tWinner[MAX_BIT_LENGTH]; 
 
-// Eval's OT 1st msg randomness - in case winner's claim is false
-	zqPoint evalAlpha;
 };
 
 struct shm_remove

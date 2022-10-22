@@ -81,60 +81,8 @@ public:
 		}
 	
 
+		void initGroup();
 		
-		void initGroup()
-		{
-			BN_CTX *ctx = BN_CTX_new();
-    		BIGNUM *k; 
-			
-			EC_POINT *i = EC_POINT_new(ecg);
-			BIGNUM *x = BN_new();
-			BIGNUM *y = BN_new();
-			BN_set_word(x, 0);
-			BN_set_word(y, 0);
-			
-			EC_POINT_set_affine_coordinates(ecg, i, x, y,ctx);
-			ident = new GroupElement(i, this);
-
-    		k = BN_new(); // Place holder for the order of group
-			EC_GROUP_get_order(ecg, k, ctx);
-			q = BN_new();
-			q = k;
-			//printf("q = \n");
-			//BN_print_fp(stdout, q);
-
-			
-			numBitsInOrder = BN_num_bits(k);
-			EC_POINT *ecpg = (EC_POINT *) EC_GROUP_get0_generator(ecg);
-			g = new GroupElement(ecpg, this);
-
-			//printf("g = \n");
-			//printGroupElement(g);
-
-
-			EC_POINT *ecph = (EC_POINT *) EC_POINT_dup(ecpg, ecg);
-			EC_POINT_dbl(ecg, ecph, g->ep,NULL);
-
-			h = new GroupElement(ecph, this);	
-
-			EC_POINT_dbl(ecg, ecph, h->ep,NULL);
-
-			g1 = new GroupElement(ecph, this);		
-			
-			if(EC_POINT_is_at_infinity(ecg, h->ep) ==1)
-			{
-				printf("h is a point at infinity\n");
-			}
-			if(EC_POINT_set_to_infinity(ecg, ident->ep) == 0)
-			{
-				printf("Setting point to infinity failed\n");
-			}
-#ifdef DEBUG			
-			
-			printf("****Group initialized****\n");
-			printGroupParams();
-#endif			
-		}
 		
 		uint power(GroupElement *ret, GroupElement *g, BIGNUM *r);
 
@@ -154,11 +102,16 @@ public:
 		void printECPoint(EC_POINT* ep);
 		void printGroupParams();
 		void dupGroupElement(GroupElement *d, GroupElement *s);
+		void chooseNUMSPoints();
+
+		void eval(BIGNUM* x, BIGNUM* y);
+
 
 
 		GroupElement *g; //generator
 		GroupElement *g1; //second generator
 		GroupElement *h; //Group Element used for Commitments
+		GroupElement *T1; // Group Element used for OT
 
 		GroupElement *ident;
 

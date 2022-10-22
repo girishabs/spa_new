@@ -4,7 +4,6 @@
 #include "group.h"
 #include "commit.h"
 #include "encoder.h"
-#include "otengine.h"
 #include <semaphore.h>
 
 
@@ -52,35 +51,34 @@ public:
 		
 
 
-		if(id != 0) // Not the evaluator
+		bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[id]);
+		uint n = b;
+		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
 		{
-			bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[id]);
-			uint n = b;
-			for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-			{
-        		bitsOfBid[MAX_BIT_LENGTH-1-j] = static_cast<bool>(n % 2);
-        		n = n / 2;      
-			}	
-			GroupElement e = GroupElement(grp);
-			GroupElement f = GroupElement(grp);
-			for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-			{
-				s[j] = grp->getRandomNumber();
-				t[j] = grp->getRandomNumber();
-				grp->power(&e, grp->g, s[j]);
-				grp->power(&f, grp->h, t[j]);
-				grp->elementMultiply(&e,&e,&f);
-				bidderBB->z[j] = e.gpt;
-			}
-
+       		bitsOfBid[MAX_BIT_LENGTH-1-j] = static_cast<bool>(n % 2);
+       		n = n / 2;      
+		}	
+		GroupElement e = GroupElement(grp);
+		GroupElement f = GroupElement(grp);
+		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
+		{
+			s[j] = grp->getRandomNumber();
+			t[j] = grp->getRandomNumber();
+			grp->power(&e, grp->g, s[j]);
+			grp->power(&f, grp->h, t[j]);
+			grp->elementMultiply(&e,&e,&f);
+			bidderBB->z[j] = e.gpt;
 		}
+
+		
 		for(uint k = 0; k < MAX_BIT_LENGTH; k++)
 		{
 			bitcode[k] = new GroupElement(grp);	
+			zeroBitCode = new GroupElement(grp);	
 
 		}
 
-		char name[16];
+		char name[32];
 
 		sprintf(name, "bidderThr-%d",id); // Each semaphore has a name of the form "bidder-<id>". E.g.: Bidder 12 has name "bidder-12"
 
@@ -103,6 +101,7 @@ public:
         	perror("sem_comp_stg: Semaphore creation failed");
     	}
 
+
 	}
 	~Bidder()
 	{
@@ -112,6 +111,10 @@ public:
 			BN_free(t[j]);
 			
 			delete bitcode[j];	
+			delete zeroBitCode;
+
+			BN_free(beta[j]);
+			BN_free(invbeta[j]);
 		}	
 		delete bidCommit;
 		delete grp;	
@@ -119,6 +122,15 @@ public:
 		sem_close(bidder_thr_sem);
 		sem_close(comp_stg_sem);
 		sem_close(bidder_sync_sem);
+
+
+		for(uint i = 0; i < MAX_BIDDERS; i++)
+		{
+			sem_close(&eval_init_sem[i]);
+
+			sem_close(&eval_thr_sem[i]);
+			sem_close(&eval_sync_sem[i]);
+		}	
 
 	}
 
@@ -129,9 +141,22 @@ public:
 	virtual PStage protocolComputeStageBidder();
 	virtual void protocolVerificationStage();
 	
-
-
 	PStage currentState;
+
+	void initBidder();
+
+	void announceWinner();
+	bool verifyWinnerClaim();
+
+	uint  exp(int a, int n) 
+	{ 
+		uint e = 1;
+		for(uint i =1; i <=n; i++)
+		{
+			e = e * a;
+		}
+		return e;
+	}
 
 	uint utility()
 	{
@@ -155,7 +180,6 @@ public:
 	uint value;
 	Group *grp; // The Group on which all crypto primitives are based
 	BBMemoryBidder *bidderBB; // Pointer to the bulletin board where bidder can write its artefacts
-	BBMemoryEval *evalBB; // Pointer to the bulletin board where evaluator writes its artefacts
 	Encoder *enc;
 
 	// Pedersen Commitment
@@ -172,171 +196,33 @@ public:
 	BIGNUM* s[MAX_BIT_LENGTH]; // Randomness used during OT 2nd message
 	BIGNUM* t[MAX_BIT_LENGTH]; // Randomness used during OT 2nd message
 
+
 	GroupElement *bitcode[MAX_BIT_LENGTH]; // Bit codes used during the computation stage
+	GroupElement *zeroBitCode; // Place holder to store zero bit codes during a round
+
+
+	GroupElement* bidderBitcode[MAX_BIDDERS]; // Place holder to store the bit codes for computation
+
+	BIGNUM * beta[MAX_BIT_LENGTH];          // OT first message randomness
+	BIGNUM * invbeta[MAX_BIT_LENGTH];       // Inverse value - used during message retrieval
+
+	// OT first message parameters
+	GrpPoint G0[MAX_BIT_LENGTH];
+	GrpPoint H0[MAX_BIT_LENGTH];
+	GrpPoint G1[MAX_BIT_LENGTH];
+	GrpPoint H1[MAX_BIT_LENGTH];
+	GroupElement *T;			
+
+	// Bits used during computation by Evaluator					
+	uint evalComputeBit[MAX_BIT_LENGTH];
+	sem_t eval_thr_sem[MAX_BIDDERS];
+	sem_t eval_init_sem[MAX_BIDDERS];
+	sem_t eval_sync_sem[MAX_BIDDERS];
+
+
 	sem_t *bidder_thr_sem; // Semaphore held by the bidder
 	sem_t *comp_stg_sem; // Semaphore used during the computation stage
 	sem_t *bidder_sync_sem; // Semaphore used by bidder for general sync with Eval
 };
-
-class Eval: public Bidder
-{
-public:
-	Eval(){}
-	Eval(uint v, uint b, uint d, uint addr, uint _id, BulletinBoard* _bb) 
-		:Bidder( v,  b,  d,  addr,  _id, _bb)
-	{
-
-		uint mask = 1;
-
-		auctionLost = false;
-		currentRound = 0; // The round 0 is invalid value. Valid range for rounds is [1,...,l]
-
-		evalBB  = static_cast<struct BBMemoryEval *>(&bb->evalBB);
-
-
-		uint n = b;
-		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-		{
-			    	    
- 		 // storing remainder in binary array
-        	bitsOfBid[MAX_BIT_LENGTH-1-j] = static_cast<bool>(n % 2);
-        	n = n / 2;    	
-		}	
-#ifdef COMMENT
-		// Allocate OT parameters and write them on to BB
-    	BIGNUM *num;
-    	GroupElement e  = GroupElement(grp);  
-		GroupElement f  = GroupElement(grp);  
-
-		T1 = new GroupElement(grp);
-		num = grp->getRandomNumber() ;
-		grp->power(T1, grp->g, num);
-		evalBB->T1 = T1->gpt;
-
-		// Pre-allocate the OT first messages for both 0 and 1. Use bit specific messages during computation
-		for(uint i = 0; i < MAX_BIDDERS+1; i++)
-		{
-			for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-			{
-				beta[i][j] = grp->getRandomNumber();
-				invbeta[i][j] = BN_new();
-				BN_sub(invbeta[i][j],grp->q,beta[i][j]);
-
-				num = grp->getRandomNumber() ;
-            	grp->power(&f, grp->g, num);
-
-            	evalBB->T2[i][j] = f.gpt; // Write T2 values to BB
-				
-				grp->power(&e,grp->g, beta[i][j]); // G0 = g^beta
-				G0[i][j] = e.gpt;
-
-				grp->elementMultiply(&e, &e, T1); // G1 = g^beta.T1
-				G1[i][j] = e.gpt;
-				
-				grp->power(&e,grp->h, beta[i][j]); // H0 = h^beta
-				H0[i][j] = e.gpt;
-
-				grp->elementMultiply(&e, &e, &f); // H1 = h^beta.T2
-				H1[i][j] = e.gpt;
-			}
-			
-		}
-		for(uint i = 0; i < MAX_BIDDERS; i++)
-		{
-			bidderBitcode[i] = new GroupElement(grp);			
-		}		
-		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-		{
-			delta[j] = BN_new();
-		}
-		// Following is dummy OT second message values - required only for commitment
-		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-		{
-			s[j] = grp->getRandomNumber();
-			t[j] = grp->getRandomNumber();
-		}
-
-#endif //COMMENT
-	}
-
-	~Eval()
-	{
-		for(uint i = 0; i < MAX_BIDDERS+1; i++)
-		{
-			for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-			{
-				BN_free(beta[i][j]);
-				BN_free(invbeta[i][j]);
-
-			}
-			sem_close(&eval_init_sem[i]);
-
-			sem_close(&eval_thr_sem[i]);
-			sem_close(eval_sync_sem[i]);
-		}
-		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-		{
-			BN_free(delta[j]);
-		}
-		
-	}
-	void printEvalParams()
-	{
-		for(uint i = 0; i < MAX_BIDDERS+1; i++)
-		{
-			for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-			{
-				printf("\nalpha[%d][%d]:\n",i,j);
-				BN_print_fp(stdout,beta[i][j]);
-				printf("\ninvalpha[%d][%d]:\n",i,j);
-				BN_print_fp(stdout,invbeta[i][j]);
-			}
-		}
-		cout << endl;
-	}
-	void initEval();
-
-	virtual PStage protocolSetupStage();	
-
-	virtual PStage protocolComputeStageEval();
-	virtual void protocolVerificationStage();
-
-	void announceWinner();
-	bool verifyWinnerClaim();
-
-	uint  exp(int a, int n) 
-	{ 
-		uint e = 1;
-		for(uint i =1; i <=n; i++)
-		{
-			e = e * a;
-		}
-		return e;
-	}
-
-
-	GroupElement* bidderBitcode[MAX_BIDDERS];
-
-	struct BBMemoryEval *evalBB ;
-	BIGNUM * beta[MAX_BIDDERS+1][MAX_BIT_LENGTH];          // OT first message randomness
-	BIGNUM * invbeta[MAX_BIDDERS+1][MAX_BIT_LENGTH];       // Inverse value - used during message retrieval
-	BIGNUM * delta[MAX_BIT_LENGTH];							// Used for proof of computation
-
-	// OT first message parameters
-	GrpPoint G0[MAX_BIDDERS+1][MAX_BIT_LENGTH];
-	GrpPoint H0[MAX_BIDDERS+1][MAX_BIT_LENGTH];
-	GrpPoint G1[MAX_BIDDERS+1][MAX_BIT_LENGTH];
-	GrpPoint H1[MAX_BIDDERS+1][MAX_BIT_LENGTH];
-	GroupElement *T1;			
-
-	// Bits used during computation by Evaluator					
-	uint evalComputeBit[MAX_BIT_LENGTH];
-	sem_t eval_thr_sem[MAX_BIDDERS+1];
-	sem_t eval_init_sem[MAX_BIDDERS+1];
-	sem_t *eval_sync_sem[MAX_BIDDERS+1];
-
-};
-
-
 
 #endif

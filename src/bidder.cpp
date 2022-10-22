@@ -20,7 +20,7 @@ PStage Bidder::protocolSetupStage()
 {
 	//cout << "Inside bidder SetupStage" << endl;
     //printf("Bid value for bidder %d is %X\n", id, bidval);
-    //bidCommit  = GroupElement(grp);
+    
 
     rcommit = grp->getRandomNumber() ;
     bid = BN_new();
@@ -31,9 +31,6 @@ PStage Bidder::protocolSetupStage()
 #ifdef DEBUG    
     printBidBits();
 #endif
-
-    evalBB = static_cast<struct BBMemoryEval *>(&bb->evalBB);
-    
 
     BN_set_word(bid, bidval);
     
@@ -49,7 +46,7 @@ PStage Bidder::protocolSetupStage()
         r[j] = grp->getRandomNumber() ;
         grp->power(&e, grp->g, x[j]); //pubKey = g^x
 
-        bidderBB->common.pubKey[j] = e.gpt; // Write public keys to BB
+        bidderBB->pubKey[j] = e.gpt; // Write public keys to BB
         
         // printf("Bidder public key [%d][%d]:\n",id,j);
         // e.printGroupPoint(&bidderBB->common.pubKey[j]);
@@ -57,6 +54,8 @@ PStage Bidder::protocolSetupStage()
         // BN_print_fp(stdout, x[j]);
         // cout << endl;    
     }
+
+    initBidder();
 
     uint msglen = 0;
 
@@ -67,7 +66,7 @@ PStage Bidder::protocolSetupStage()
         msglen = msglen + BN_num_bytes(r[j]);
         msglen = msglen + BN_num_bytes(s[j]);
         msglen = msglen + BN_num_bytes(t[j]);
-
+        msglen = msglen + BN_num_bytes(beta[j]);
     }    
     
     unsigned char *buffer= new unsigned char[msglen];
@@ -94,6 +93,12 @@ PStage Bidder::protocolSetupStage()
         n = BN_bn2bin(t[j], &buffer[size]);
         size = size + n;
     }
+    for(int j = 0; j < MAX_BIT_LENGTH; j++)
+    {
+        n = BN_bn2bin(beta[j], &buffer[size]);
+        size = size + n;
+    }
+
 
 #ifdef DEBUG
     printf("Original buffer for bidder %d is:\n", id);
@@ -124,31 +129,24 @@ PStage Bidder::protocolSetupStage()
     BN_print_fp(stdout, rcommit);
 #endif
 
-    bidderBB->common.commitment = bidCommit->gpt; // Write to BB    
+    bidderBB->commitment = bidCommit->gpt; // Write to BB    
         
     
     bb->setupStageDone[id] = true;
 
     // usleep(100000);
-    sem_wait(bidder_sync_sem);
+    //sem_wait(bidder_sync_sem);
+
+    // printf("Bidder %d is waiting in round \n",id);
+
     
-#ifdef Trying
-    for(int i = 1; i < MAX_BIDDERS; i++)
+    for(uint i = 0; i < MAX_BIDDERS; i++)
     {
-        if(i == id)
-            continue;
-        printf("Bidder %d is waiting for bidder %d in setup\n",id, i);
-        //while(!bb->setupStageDone[i])
-            usleep(10);
+        while(!bb->setupStageDone[i]) 
+            usleep(1);    
     }
-#endif
-
-    // while(!bb->setupStageDone[0]) 
-        usleep(1);
-
     
 
-    //printf("Completed setup stage for bidder %d\n",id);
 
 	return computeStage;
  
@@ -160,55 +158,54 @@ struct thread_data
     uint i; // Bidder id
     uint j; // auction round
     bool bit; // Bit being encoded
-    Eval *eval; // Pointer to Eval class.
+    Bidder *bidder; // Pointer to Bidder class.
 };
 
-void * buildEvalData(void *input)
+void * buildBidderData(void *input)
 {
     struct thread_data *td = (struct thread_data *) input;
     uint i = td->i;
-    //uint j = td->j;
 
-    Eval *eval = (Eval *)td->eval;
+    Bidder *bidder = (Bidder *)td->bidder;
 
     BIGNUM *num;
-    GroupElement e  = GroupElement(eval->grp);  
-    GroupElement f  = GroupElement(eval->grp);  
+    GroupElement e  = GroupElement(bidder->grp);  
+    GroupElement f  = GroupElement(bidder->grp);  
 
-    // cout << "Inside buildEvalData thread " << i << endl;
+    // cout << "Inside buildBidderData thread " << i << endl;
     
     // Pre-allocate the OT first messages for both 0 and 1. Use bit specific messages during computation
 
     for(uint j = 0; j < MAX_BIT_LENGTH; j ++)
     {
-        eval->beta[i][j] = eval->grp->getRandomNumber();
-        eval->invbeta[i][j] = BN_new();
-        BN_sub(eval->invbeta[i][j],eval->grp->q,eval->beta[i][j]);
-        num = eval->grp->getRandomNumber() ;
-        eval->grp->power(&f, eval->grp->g, num);
-        eval->evalBB->T2[i][j] = f.gpt; // Write T2 values to BB
+        bidder->beta[j] = bidder->grp->getRandomNumber();
+        bidder->invbeta[j] = BN_new();
+        BN_sub(bidder->invbeta[j],bidder->grp->q,bidder->beta[j]);
+        num = bidder->grp->getRandomNumber() ;
+        bidder->grp->power(&f, bidder->grp->g, num);
+        bidder->bidderBB->zeta[j] = f.gpt; // Write zeta values to BB
                 
-        eval->grp->power(&e,eval->grp->g, eval->beta[i][j]); // G0 = g^beta
-        eval->G0[i][j] = e.gpt;
+        bidder->grp->power(&e,bidder->grp->g, bidder->beta[j]); // G0 = g^beta
+        bidder->G0[j] = e.gpt;
 
-        eval->grp->elementMultiply(&e, &e, eval->T1); // G1 = g^beta.T1
-        eval->G1[i][j] = e.gpt;
+        bidder->grp->elementMultiply(&e, &e, bidder->T); // G1 = g^beta.T
+        bidder->G1[j] = e.gpt;
                 
-        eval->grp->power(&e,eval->grp->h, eval->beta[i][j]); // H0 = h^beta
-        eval->H0[i][j] = e.gpt;
+        bidder->grp->power(&e,bidder->grp->h, bidder->beta[j]); // H0 = h^beta
+        bidder->H0[j] = e.gpt;
 
-        eval->grp->elementMultiply(&e, &e, &f); // H1 = h^beta.T2
-        eval->H1[i][j] = e.gpt;
+        bidder->grp->elementMultiply(&e, &e, &f); // H1 = h^beta.T2
+        bidder->H1[j] = e.gpt;
     }
 
-    sem_post(&eval->eval_init_sem[i]); // Increment the counting semaphore
+//    sem_post(&bidder->bidder_init_sem[i]); // Increment the counting semaphore
 
     pthread_exit(NULL);    
 }
 
 
-// The following function initializes the Eval object
-void Eval::initEval()
+// The following function initializes the Bidder object
+void Bidder::initBidder()
 {
 
     auto ststart = std::chrono::high_resolution_clock::now();
@@ -218,10 +215,7 @@ void Eval::initEval()
     GroupElement e  = GroupElement(grp);  
     GroupElement f  = GroupElement(grp);  
 
-    T1 = new GroupElement(grp);
-    num = grp->getRandomNumber() ;
-    grp->power(T1, grp->g, num);
-    evalBB->T1 = T1->gpt;
+
     int rc = 0;
 
     pthread_t threads[MAX_BIDDERS+1];
@@ -230,24 +224,11 @@ void Eval::initEval()
     for(uint i = 0; i < MAX_BIDDERS; i++)
     {
 
-#ifdef INIT_THREAD
-        sem_init(&eval_init_sem[i], 0, 1);
-        sem_wait(&eval_init_sem[i]); // Wait for semaphore
-        td[i].i = i;
-            
-        td[i].eval = this;
-        rc = pthread_create(&threads[i], NULL, &buildEvalData, (void *)&td[i]);
-        if(rc)
-        {
-            cout << "Error in creating threads for buildEvalData" << rc << endl;
-        }
-#endif // INIT_THREAD
-
         for(uint j = 0; j < MAX_BIT_LENGTH; j ++)
         {
-            beta[i][j] = grp->getRandomNumber();
-            invbeta[i][j] = BN_new();
-            BN_sub(invbeta[i][j],grp->q,beta[i][j]);
+            beta[j] = grp->getRandomNumber();
+            invbeta[j] = BN_new();
+            BN_sub(invbeta[j],grp->q,beta[j]);
 
             num = grp->getRandomNumber() ;
             auto pstart = std::chrono::high_resolution_clock::now();
@@ -258,35 +239,35 @@ void Eval::initEval()
 
             std::chrono::duration<double, std::milli> stfloat_ms = stend - pstart;
 
-            printf("Exponentiation time for %d,%d is ", i, j ); 
-            cout << stfloat_ms.count() << " milliseconds" << std::endl;
+            // printf("Exponentiation time for %d,%d is ", i, j ); 
+            // cout << stfloat_ms.count() << " milliseconds" << std::endl;
 
-            evalBB->T2[i][j] = f.gpt; // Write T2 values to BB
+            bidderBB->zeta[j] = f.gpt; // Write zeta values to BB
                 
-            grp->power(&e,grp->g, beta[i][j]); // G0 = g^beta
-            G0[i][j] = e.gpt;
+            grp->power(&e,grp->g, beta[j]); // G0 = g^beta
+            G0[j] = e.gpt;
 
 
             auto mstart = std::chrono::high_resolution_clock::now();
 
 
-            grp->elementMultiply(&e, &e, T1); // G1 = g^beta.T1
+            grp->elementMultiply(&e, &e, grp->T1); // G1 = g^beta.T1
 
             stend = std::chrono::high_resolution_clock::now();
 
             stfloat_ms = stend - mstart;
 
-            printf("Element multiplication time for %d,%d is ", i, j ); 
-            cout << stfloat_ms.count() << " milliseconds" << std::endl;
+            // printf("Element multiplication time for %d,%d is ", i, j ); 
+            // cout << stfloat_ms.count() << " milliseconds" << std::endl;
 
 
-            G1[i][j] = e.gpt;
+            G1[j] = e.gpt;
                 
-            grp->power(&e,grp->h, beta[i][j]); // H0 = h^beta
-            H0[i][j] = e.gpt;
+            grp->power(&e,grp->h, beta[j]); // H0 = h^beta
+            H0[j] = e.gpt;
 
             grp->elementMultiply(&e, &e, &f); // H1 = h^beta.T2
-            H1[i][j] = e.gpt;
+            H1[j] = e.gpt;
 
             stend = std::chrono::high_resolution_clock::now();
 
@@ -305,13 +286,6 @@ void Eval::initEval()
     {
         bidderBitcode[i] = new GroupElement(grp);           
     }       
-    for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        delta[j] = BN_new();
-        // Following is dummy OT second message values - required only for commitment
-        s[j] = grp->getRandomNumber();
-        t[j] = grp->getRandomNumber();
-    }
 
 #ifdef INIT_THREAD
     for(uint i = 0; i < MAX_BIDDERS+1; i++)
@@ -329,248 +303,6 @@ void Eval::initEval()
 }
 
 
-PStage Eval::protocolSetupStage()
-{
-    //cout << "Inside eval SetupStage" << endl;
-    //printf("Bid value for eval %d is %X\n", id, bidval);
-    rcommit = grp->getRandomNumber() ;
-    bid = BN_new();
-    BN_set_word(bid, bidval);
-    GroupElement e  = GroupElement(grp);
-
-    // Initialize the claimant on BB to be invalid
-    bb->winnerClaim = -1; 
-
-#ifdef DEBUG
-    printBidBits();
-#endif    
-
-    // Generate Public/Private keys for each round
-    for(int j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        // BIGNUM *n = BN_new();
-        // BN_set_word(n, 1);
-        // x[j] = n;
-
-        x[j] = grp->getRandomNumber() ;
-        r[j] = grp->getRandomNumber() ;
-
-        
-        grp->power(&e, grp->g, x[j]);
-
-       // printf("Eval public gpt [%d][%d]:\n",id,j);
-       // e.printGroupPoint(&e.gpt);
-
-        evalBB->common.pubKey[j] = e.gpt; // Write public keys to BB
-        // printf("Eval public key [%d][%d]:\n",id,j);
-        // e.printGroupPoint(&evalBB->common.pubKey[j]);
-    
-
-        // printf("Eval private key [%d][%d]:\n",id,j);
-        // BN_print_fp(stdout, x[j]);
-        // cout << endl;
-            
-    }
-    uint msglen = 0;
-
-
-    for(int j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        msglen = msglen + BN_num_bytes(x[j]);
-        msglen = msglen + BN_num_bytes(r[j]);
-        msglen = msglen + BN_num_bytes(s[j]);
-        msglen = msglen + BN_num_bytes(t[j]);
-    }    
-            
-    unsigned char *buffer= new unsigned char[msglen];
-
-    uint size = 0, n = 0;
-    for(int j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        n = BN_bn2bin(x[j], &buffer[size]);
-        size = size + n;
-    }
-    
-    for(int j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        n = BN_bn2bin(r[j], &buffer[size]);
-        size = size + n;
-    }
-    for(int j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        n = BN_bn2bin(s[j], &buffer[size]);
-        size = size + n;
-    }
-    for(int j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        n = BN_bn2bin(t[j], &buffer[size]);
-        size = size + n;
-    }
-#ifdef DEBUG    
-    printf("Original buffer for bidder %d is:\n", id);
-    printBuffer(buffer, size);
-#endif    
-    
-    unsigned char hashString[SHA256_DIGEST_LENGTH];
-
-    SHA256(buffer, size, hashString);
-
-    BIGNUM *hash = BN_new();
-
-    BN_bin2bn(hashString,MAX_BIG_NUM_SIZE,hash);
-
-    
-    commitObj->Commit(bidCommit, bid,hash, rcommit); // Generate Commitment
-    evalBB->common.commitment = bidCommit->gpt;
-
-#ifdef DEBUG
-    printf("The bid value is:\n");
-    BN_print_fp(stdout, bid);
-    cout << endl;
-    printf("with commitment:\n");
-    grp->printGroupElement(bidCommit);
-    printf("The hash value is:\n");
-    BN_print_fp(stdout, hash);
-    printf("The randomness is:\n");
-    BN_print_fp(stdout, rcommit);
-#endif    
-
-    
-    char name[16];
-
-    usleep(10);
-    for(uint i = 1; i < MAX_BIDDERS; i++)
-    {
-
-        sprintf(name, "bidderSyn-%d",i); // Each semaphore has a name of the form "bidder-<id>". E.g.: Bidder 12 has name "bidder-12"
-
-        eval_sync_sem[i] = sem_open(name, O_CREAT, 0777, 0);
-        if(eval_sync_sem[i] == SEM_FAILED)
-        {
-            perror("bidder_sync_sem: Semaphore creation failed");
-        }
-        int sval = 0;
-        sem_getvalue(eval_sync_sem[i], &sval);
-        //printf("Value of sync semaphore %d is %d\n", i, sval);
-        sem_post(eval_sync_sem[i]);
-        
-        // Wait for everyone to complete their setup stage.
-        //printf("Bidder %d is waiting for bidder %d in setup\n",id, i);
-
-        //while(!bb->setupStageDone[i]);       
-    }
-
-
-    bb->setupStageDone[id] = true;
-    return computeStage; 
-}
-/* This procedure implements the computation stage of the protocol - for the bidder.
- * The bidder computes the ABP bit.
- * Uses BES to enode the bit to generate the bit code.
- * Generates the OT encryption for the bit, using the randomness shared by Eval.
- * Writes the encrypted messages for msg-0 and msg-1 of OT to the BB
- *  
-*/
-PStage Bidder::protocolComputeStageBidder()
-{
-	//cout << "Inside ComputeStageBidder" << endl;
-    bool computeBit, winBit ;
-    GroupElement e  = GroupElement(grp);
-    GroupElement f  = GroupElement(grp);
-
-    for(uint k = 1; k <= MAX_BIT_LENGTH; k++)
-    {    
-        uint j = k-1;
-        computeBit = getABPbit(j);
-        if (computeBit)
-        {
-            enc->oneBitEncode(bitcode[j], r[j]);
-
-            // printf("Constructed onebitcode[%d][%d] is :\n",id,j);            
-        }
-        else 
-        {
-            enc->zeroBitEncode(bitcode[j],x[j],id,j, bb); 
-            // printf("Constructed zerobitcode[%d][%d] is :\n",id,j);
-        }
-        // grp->printGroupElement(bitcode[j]);
-        {
-            auto start = std::chrono::high_resolution_clock::now();
-            while(!bb->OTParamsUpdated[id][j]) 
-                usleep(10); 
-                // Wait till Eval updates OT params
-            auto end = std::chrono::high_resolution_clock::now();
-
-            std::chrono::duration<double, std::milli> float_ms = end - start;
-
-            //std::cout << "OT wait time is " << 
-            //    float_ms.count() << " ms for bidder " << id << std::endl;
-        }        
-    
-            
-            
-        //printf("%d Received OT Params for round %d\n", id, j);
-
-// Run OT to send  the bit code to evalutor
-        GroupElement G = GroupElement(grp, &evalBB->G[id][j]);
-        GroupElement H = GroupElement(grp, &evalBB->H[id][j]);
-        // printf("Used G and H are:\n");
-        // grp->printGroupElement(&G);
-        // grp->printGroupElement(&H);
-        
-        grp->power(&e, &G, s[j]);
-        grp->power(&f, &H, t[j]);
-
-        grp->elementMultiply(&e, &e, &f);
-        grp->elementMultiply(&e, &e, bitcode[j]);
-
-        bidderBB->msgEnc_0[j] = e.gpt; // Write OT message to BB
-     //   printf("C0[%d][%d] point written is:\n", id, j);
-     //   e.printGroupPoint(&bidderBB->msgEnc_0[j]);
-
-     //   printf("Bidder's z[%d][%d] is : \n",id, j);
-     //   e.printGroupPoint(&bidderBB->z[j]); 
-        
-        bb->bidderUpdatedRound[id] = k;       
-
-        //sem_post(bidder_sync_sem); // Signal the waiting thread that bidder is done updating
-     
-
-        //cout << id << ", waiting for eval update in round " << j << endl;      
-
-        //usleep(100);
-
-        sem_post(bidder_thr_sem); 
-
-        // printf("Bidder %d is waiting for computeStage in round %d\n",id,j);
-
-        sem_wait(bidder_sync_sem); // Wait till Evaluator has completed tasks in round j
-
-        //while(bb->evalUpdatedRound != k);
-        
-        
-        if(bb->winBit[j] == 1 && computeBit == 0)
-            auctionLost = true;
-        //cout << "Round " << j << " is completed" << endl;
-        
-    }
-
-	return verifyStage;
-}
-
-/* This procedure implements the computation stage of the protocol - for the evalutor.
- * The bidder computes the ABP bit.
- * Uses BES to enode the bit to generate the bit code.
- * Uses the ABP bit as the choice bit for OT protocol.
- * Generates round specific randomness beta for the OT.
- * Writes the OT keys, G = g^beta.T1^computeBit, H = h^beta.T1^computeBit and T2 to the BB.
- * Generates the OT encryption for the bit.
- * Writes the encrypted messages for msg-0 and msg-1 of OT to the BB.
- * Obtains the OT encryptions for each bidder, C_0.
- * Computes the winBit for the round and writes it to BB.
- *  
-*/
-
 
 void * OTUpdate(void *input)
 {
@@ -578,38 +310,38 @@ void * OTUpdate(void *input)
     uint i = td->i;
     uint j = td->j;
 
-    Eval *eval = (Eval *)td->eval;
+    Bidder *bidder = (Bidder *)td->bidder;
 
-    //cout << "Inside thread " << i<< " j = " << j << endl;
-    //eval->grp->printGroupElement(eval->grp->g);
-    //eval->grp->power(&e,eval->grp->g, eval->beta[i][j]);
-    //BN_print_fp(stdout, eval->beta[i][j]);
+    cout << "Inside thread " << i<< " j = " << j << endl;
+    //bidder->grp->printGroupElement(bidder->grp->g);
+    //bidder->grp->power(&e,bidder->grp->g, bidder->beta[i][j]);
+    //BN_print_fp(stdout, bidder->beta[i][j]);
     //cout << endl;
 
     if(td->bit == 0) // OT params for choice bit = 0
     {
-        eval->evalBB->G[i][j] = eval->G0[i][j] ; 
+        bidder->bidderBB[i].G[j] = bidder->G0[j] ; 
 
-        eval->evalBB->H[i][j] = eval->H0[i][j] ; 
+        bidder->bidderBB[i].H[j] = bidder->H0[j] ; 
 
     }
     else if(td->bit == 1) // OT params for choice bit = 1
     {
-        eval->evalBB->G[i][j] = eval->G1[i][j] ;    
-        eval->evalBB->H[i][j] = eval->H1[i][j] ; 
+        bidder->bidderBB[i].G[j] = bidder->G1[j] ;    
+        bidder->bidderBB[i].H[j] = bidder->H1[j] ; 
     }
-    GroupElement *e  = new GroupElement(eval->grp, &eval->evalBB->G[i][j]);   
-    GroupElement *f  = new GroupElement(eval->grp, &eval->evalBB->H[i][j]);   
+    GroupElement *e  = new GroupElement(bidder->grp, &bidder->bidderBB[i].G[j]);   
+    GroupElement *f  = new GroupElement(bidder->grp, &bidder->bidderBB[i].H[j]);   
 
 #ifdef DEBUG
     printf("Values of G and H %d,%d are:\n", i,j);
-    eval->grp->printGroupElement(e);
-    eval->grp->printGroupElement(f);
+    bidder->grp->printGroupElement(e);
+    bidder->grp->printGroupElement(f);
 #endif    
 
-    eval->bb->OTParamsUpdated[i][j] = true;   
+    bidder->bb->OTParamsUpdated[i][j] = true;   
 
-    BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&eval->bb->bidderBB[i]);
+    BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&bidder->bb->bidderBB[i]);
 
 // Now wait for individual bidders to get back     
 
@@ -630,57 +362,39 @@ void * OTUpdate(void *input)
     sem_getvalue(sem, &sval);
     //printf("Value of sync semaphore %d is %d\n", i, sval);
     
-    while(eval->bb->bidderUpdatedRound[i] != j+1)
-        usleep(10);
+    // while(bidder->bb->bidderUpdatedRound[i] != j+1)
 
 
-    //printf("C0[%d][%d] point received is:\n",i,j);
+    sem_post(&bidder->eval_thr_sem[i]); // Increment the counting semaphore
 
-    GroupElement C0 = GroupElement(eval->grp, &bidderBB->msgEnc_0[j]);
-    //C0.printGroupPoint(&bidderBB->msgEnc_0[j]);
-
-    GroupElement z  = GroupElement(eval->grp, &bidderBB->z[j]);
-    //printf("Eval:Retrieved z[%d][%d] is \n:",i,j);
-    //eval->grp->printGroupElement(&z);
-    //printf("Rx: beta, invbeta[%d][%d] are:\n", i,j);
-    //BN_print_fp(stdout, eval->beta[i][j]);
-    //cout << endl;
-    //BN_print_fp(stdout, eval->invbeta[i][j]);
-    //cout << endl;
-
-    GroupElement a  = GroupElement(eval->grp);
-    eval->grp->power(&a,&z,eval->invbeta[i][j]);
-
-    eval->grp->elementMultiply(eval->bidderBitcode[i],&C0,&a);
-    // printf("\nEval:The retrieved bitcode[%d][%d] is : \n", i,j);
-
-    // eval->grp->printGroupElement(eval->bidderBitcode[i]);
-
-    sem_post(&eval->eval_thr_sem[i]); // Increment the counting semaphore
     pthread_exit(NULL);    
 }
 
 
-PStage Eval::protocolComputeStageEval()
+/* This procedure implements the computation stage of the protocol - for the bidder.
+ * The bidder computes the ABP bit.
+ * Uses BES to enode the bit to generate the bit code.
+ * Generates the OT encryption for the bit, using the randomness shared by Eval.
+ * Writes the encrypted messages for msg-0 and msg-1 of OT to the BB
+ *  
+*/
+PStage Bidder::protocolComputeStageBidder()
 {
-    bool computeBit, winBit ;
-	//cout << "Inside ComputeStageEval" << endl;
-    double OTClock = 0;
-    int rc = 0;
+	//cout << "Inside ComputeStageBidder" << endl;
+    bool computeBit, winBit, testBit, highestBidder = false ;
+    GroupElement e  = GroupElement(grp);
+    GroupElement f  = GroupElement(grp);
+    int rc;
 
-    
     for(uint k = 1; k <= MAX_BIT_LENGTH; k++)
-    {
-        auto start = std::chrono::high_resolution_clock::now(); // measuring time taken for rounds
-
+    {    
         uint j = k-1;
+
         pthread_t threads[MAX_BIDDERS-1];
         struct thread_data td[MAX_BIDDERS-1];
-        evalComputeBit[j] = getABPbit(j);
-        
+                
         GroupElement e  = GroupElement(grp);   
-        auto start2 = std::chrono::high_resolution_clock::now();
-        for(uint i = 1; i < MAX_BIDDERS; i++)
+        for(uint i = 0; i < MAX_BIDDERS; i++)
         {
             
             // printf("Tx: beta, invbeta[%d][%d] are:\n", i,j);
@@ -690,117 +404,170 @@ PStage Eval::protocolComputeStageEval()
             // cout << endl;
             // OT first message computation
 
+            if (i == id)
+                continue; // No need to create a OT thread for itself.
+
             sem_init(&eval_thr_sem[i], 0, 1);
 
             sem_wait(&eval_thr_sem[i]); // Wait for semaphore
 
-
-            td[i-1].i = i;
-            td[i-1].j = j;
-            td[i-1].bit = evalComputeBit[j] ;
-            td[i-1].eval = this;
-            rc = pthread_create(&threads[i-1], NULL, &OTUpdate, (void *)&td[i-1]);
+            td[i].i = i;
+            td[i].j = j;
+            td[i].bit = evalComputeBit[j] ;
+            td[i].bidder = this;
+            rc = pthread_create(&threads[i], NULL, &OTUpdate, (void *)&td[i]);
             if(rc)
             {
                 cout << "Error in creating threads for OTUpdate" << rc << endl;
             }
 
-        }               
+        }     
+
+        if(highestBidder) // Highest bidder only sends zero bit codes through OT
+            computeBit = false; 
+        else
+            computeBit = getABPbit(j);
+
+        if (computeBit)
+        {
+            enc->oneBitEncode(bitcode[j], r[j]);
+            
+            enc->zeroBitEncode(zeroBitCode,x[j],id,j, bb); 
+
+            // printf("Constructed onebitcode[%d][%d] is :\n",id,j);            
+        }
+        else 
+        {
+            enc->zeroBitEncode(bitcode[j],x[j],id,j, bb); 
+            // printf("Constructed zerobitcode[%d][%d] is :\n",id,j);
+        }
+        // grp->printGroupElement(bitcode[j]);
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            //while(!bb->OTParamsUpdated[id][j]) 
+                usleep(10); 
+                // Wait till Eval updates OT params
+            auto end = std::chrono::high_resolution_clock::now();
+
+            std::chrono::duration<double, std::milli> float_ms = end - start;
+
+            //std::cout << "OT wait time is " << 
+            //    float_ms.count() << " ms for bidder " << id << std::endl;
+        }        
     
-            // printf("Value of G and H[%d][%d] are:\n",i,j);
-            // e.printGroupPoint(&evalBB->G[i][j]);
-            // e.printGroupPoint(&evalBB->H[i][j]);
- 
-            //printf("\nEval: beta[%d][%d]:\n",i,j);
-            //BN_print_fp(stdout,invbeta[i][j]);    
             
-        
-        //if(!evalComputeBit[j])
-        //{
-            //printf("Eval has a 0 bit. Hence getting all bit codes\n");
             
-            enc->zeroBitEncode(bidderBitcode[id],x[j],id,j,bb); // id = 0 for eval
-            
-            //grp->printGroupElement(bidderBitcode[id]);
+        printf("Bidder %d Received OT Params for round %d\n", id, j);
 
-
-            for(uint i = 1; i < MAX_BIDDERS; i++)
-            {
-                // printf("Waiting for thread %d\n",i);
-                sem_wait(&eval_thr_sem[i]); // Wait for thread i to complete OT operation with bidder i
-            }
-            // printf("Done waiting for threads during round %d\n",j); 
-            
-
-            
-            winBit = enc->decodeBitcode(j, this);
-
-            auto end2 = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> float_ms2 = end2 - start2;
-            OTClock += float_ms2.count();
-
-            //std::cout << "OT Computation time is " << 
-            //float_ms2.count() << " ms during round " << j << std::endl;
-
-        //} 
-        
-        /* else
+// Run OT to send  the bit code to other bidders
+        for(uint i = 0; i < MAX_BIDDERS; i++)
         {
-            winBit = 1;   
-            auto end2 = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> float_ms2 = end2 - start2;
-            OTClock += float_ms2.count();
+            if(i == id)
+                continue; // Ignore self
 
-            std::cout << "OT Computation time for 1 eval bit is " << 
-            float_ms2.count() << " ms for all bidders " << std::endl;
-        }*/
+            GroupElement zeta = GroupElement(grp, &bb->bidderBB[i].zeta[j]);
+            grp->getInverse(&zeta); // We are not going to use zeta; Only its inverse is useful
 
-        if (winBit == 0) // Computed bit is 0. Need to provide proofs
+            GroupElement G = GroupElement(grp, &bb->bidderBB[i].G[j]);
+            GroupElement H = GroupElement(grp, &bb->bidderBB[i].H[j]);
+
+            // The encoding for M_1 is: C_1 = (G/zeta)^s . (H/T)^t . B_ij
+
+            // printf("Used G and H are:\n");
+            // grp->printGroupElement(&G);
+            // grp->printGroupElement(&H);
+        
+            grp->power(&e, &G, s[j]);
+            grp->power(&f, &H, t[j]);
+
+            grp->elementMultiply(&e, &e, &f);
+            grp->elementMultiply(&e, &e, bitcode[j]);
+
+            bidderBB->msgEnc_1[j] = e.gpt; // Write OT message to BB
+        //   printf("C0[%d][%d] point written is:\n", id, j);
+        //   e.printGroupPoint(&bidderBB->msgEnc_1[j]);
+
+        //   printf("Bidder's z[%d][%d] is : \n",id, j);
+        //   e.printGroupPoint(&bidderBB->z[j]); 
+        
+        }    
+
+        bb->sentBitCodes[id][j] = true;
+
+        for(uint i = 0; i < MAX_BIDDERS; i++)
         {
-            for(int i =0; i < MAX_BIDDERS; i++)
+            while(!bb->sentBitCodes[id][j])
+                usleep(1);
+            printf("Received from bidder %d bit codes in round %d\n", i,j);
+        } // Wait for all other bidders to send their bit codes    
+
+        if(!computeBit && !highestBidder) // If contributing 0 bit and not the winner, 
+                                          //skip rest of computation in this round
+            continue;
+
+        // Having sent the j'th bit code to all other bidders, receive the bit codes from other bidders
+        for(uint i = 0; i < MAX_BIDDERS; i++)
+        {
+            if(i == id)
             {
-                bb->proofOfComputation[i][j] = bidderBitcode[i]->gpt; // Write proof to BB
-                //printf("Proof of computation [%d][%d]\n",i,j);
-                //grp->printGroupElement(bidderBitcode[i]);
-                //bidderBitcode[i]->printGroupPoint(&bb->proofOfComputation[i][j]);
+                bidderBitcode[i] = zeroBitCode; // Copy own zero bit for this round code to i'th position where i = id
+                continue; // Ignore self
             }
+
+            GroupElement C1 = GroupElement(grp, &bidderBB[i].msgEnc_1[j]);
+            //C0.printGroupPoint(&bidderBB->msgEnc_1[j]);
+
+            GroupElement z  = GroupElement(grp, &bidderBB[i].z[j]);
+            //printf("Eval:Retrieved z[%d][%d] is \n:",i,j);
+            //bidder->grp->printGroupElement(&z);
+            //printf("Rx: beta, invbeta[%d][%d] are:\n", i,j);
+            //BN_print_fp(stdout, beta[j]);
+            //cout << endl;
+            //BN_print_fp(stdout, invbeta[j]);
+            //cout << endl;
+
+            GroupElement a  = GroupElement(grp);
+            grp->power(&a,&z,invbeta[j]);
+
+            grp->elementMultiply(bidderBitcode[i],&C1,&a);
+
+        }    
+        
+        testBit = enc->decodeBitcode(j, this);
+        if(testBit && !highestBidder)
+        {
+            printf("Bidder %d is the highest bidder\n", id);
+            highestBidder = true;
         }
-     
-        bb->winBit[j] = winBit;
-        //printf("%d'th winBit is %i\n", j, winBit);
 
-        if(bb->winBit[j] == 1 && evalComputeBit[j]  == 0)
+        if(highestBidder) 
         {
+            // Write the same bitcode to BB as that of second highest bidder - i.e. bit code for testBit
+            if(testBit)
+                enc->oneBitEncode(bitcode[j], r[j]);
+            else
+                enc->zeroBitEncode(bitcode[j],x[j],id,j,bb); 
+        }
+
+        // Write the bit code to BB
+        bidderBB[id].bitCode[j] = bitcode[j]->gpt;
+
+            sem_post(bidder_thr_sem); 
+
+        printf("Bidder %d is waiting for computeStage in round %d\n",id,j);
+
+        sem_wait(bidder_sync_sem); // Wait till Evaluator has completed tasks in round j
+
+        //while(bb->evalUpdatedRound != k);
+        
+        
+        if(bb->winBit[j] == 1 && computeBit == 0)
             auctionLost = true;
-        }
         //cout << "Round " << j << " is completed" << endl;
-        auto end = std::chrono::high_resolution_clock::now();
-
-        std::chrono::duration<double, std::milli> float_ms = end - start;
-
-        //std::cout << "Computation stage " << j << " elapsed time is " << 
-        //float_ms.count() << " milliseconds" << std::endl;
-        //bb->evalUpdatedRound = k; // Win Bit update completed by Eval for round j=k-1
         
-        char name[16];
-        for(uint i = 1; i < MAX_BIDDERS; i++)
-        {
-            sprintf(name, "bidderSyn-%d",i); // Each semaphore has a name of the form "bidder-<id>". E.g.: Bidder 12 has name "bidder-12"
-
-            eval_sync_sem[i] = sem_open(name, O_CREAT, 0777, 0);
-            if(eval_sync_sem[i] == SEM_FAILED)
-            {
-                perror("bidder_sync_sem: Semaphore creation failed");
-            }
-            sem_post(eval_sync_sem[i]);
-        }
-
     }
-    // cout << "Total OT Time taken is " << OTClock << "ms" << endl;
-    announceWinner();
 
 	return verifyStage;
-
 }
 
 void Bidder::protocolVerificationStage()
@@ -861,6 +628,120 @@ void Bidder::protocolVerificationStage()
     sem_post(bidder_sync_sem);
     bb->verifyStageDone[id] = true;
 }
+
+
+#ifdef COMMENT
+/* This procedure implements the computation stage of the protocol - for the evalutor.
+ * The bidder computes the ABP bit.
+ * Uses BES to enode the bit to generate the bit code.
+ * Uses the ABP bit as the choice bit for OT protocol.
+ * Generates round specific randomness beta for the OT.
+ * Writes the OT keys, G = g^beta.T1^computeBit, H = h^beta.T1^computeBit and T2 to the BB.
+ * Generates the OT encryption for the bit.
+ * Writes the encrypted messages for msg-0 and msg-1 of OT to the BB.
+ * Obtains the OT encryptions for each bidder, C_0.
+ * Computes the winBit for the round and writes it to BB.
+ *  
+*/
+
+
+
+
+PStage Eval::protocolComputeStageEval()
+{
+    bool computeBit, winBit ;
+	//cout << "Inside ComputeStageEval" << endl;
+    double OTClock = 0;
+    int rc = 0;
+
+    
+    for(uint k = 1; k <= MAX_BIT_LENGTH; k++)
+    {
+        auto start = std::chrono::high_resolution_clock::now(); // measuring time taken for rounds
+
+                      
+    
+            // printf("Value of G and H[%d][%d] are:\n",i,j);
+            // e.printGroupPoint(&bidderBB->G[i][j]);
+            // e.printGroupPoint(&bidderBB->H[i][j]);
+ 
+            //printf("\nEval: beta[%d][%d]:\n",i,j);
+            //BN_print_fp(stdout,invbeta[i][j]);    
+            
+
+            
+            enc->zeroBitEncode(bidderBitcode[id],x[j],id,j,bb); // id = 0 for bidder
+            
+            //grp->printGroupElement(bidderBitcode[id]);
+
+
+            for(uint i = 1; i < MAX_BIDDERS; i++)
+            {
+                // printf("Waiting for thread %d\n",i);
+                sem_wait(&eval_thr_sem[i]); // Wait for thread i to complete OT operation with bidder i
+            }
+            // printf("Done waiting for threads during round %d\n",j); 
+            
+
+            
+            winBit = enc->decodeBitcode(j, this);
+
+            auto end2 = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> float_ms2 = end2 - start2;
+            OTClock += float_ms2.count();
+
+            //std::cout << "OT Computation time is " << 
+            //float_ms2.count() << " ms during round " << j << std::endl;
+
+
+        if (winBit == 0) // Computed bit is 0. Need to provide proofs
+        {
+            for(int i =0; i < MAX_BIDDERS; i++)
+            {
+                bb->proofOfComputation[i][j] = bidderBitcode[i]->gpt; // Write proof to BB
+                //printf("Proof of computation [%d][%d]\n",i,j);
+                //grp->printGroupElement(bidderBitcode[i]);
+                //bidderBitcode[i]->printGroupPoint(&bb->proofOfComputation[i][j]);
+            }
+        }
+     
+        bb->winBit[j] = winBit;
+        //printf("%d'th winBit is %i\n", j, winBit);
+
+        if(bb->winBit[j] == 1 && evalComputeBit[j]  == 0)
+        {
+            auctionLost = true;
+        }
+        //cout << "Round " << j << " is completed" << endl;
+        auto end = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double, std::milli> float_ms = end - start;
+
+        //std::cout << "Computation stage " << j << " elapsed time is " << 
+        //float_ms.count() << " milliseconds" << std::endl;
+        //bb->evalUpdatedRound = k; // Win Bit update completed by Eval for round j=k-1
+        
+        char name[16];
+        for(uint i = 1; i < MAX_BIDDERS; i++)
+        {
+            sprintf(name, "bidderSyn-%d",i); // Each semaphore has a name of the form "bidder-<id>". E.g.: Bidder 12 has name "bidder-12"
+
+            eval_sync_sem[i] = sem_open(name, O_CREAT, 0777, 0);
+            if(eval_sync_sem[i] == SEM_FAILED)
+            {
+                perror("bidder_sync_sem: Semaphore creation failed");
+            }
+            sem_post(eval_sync_sem[i]);
+        }
+
+    }
+    // cout << "Total OT Time taken is " << OTClock << "ms" << endl;
+    announceWinner();
+
+	return verifyStage;
+
+}
+
 void Eval::protocolVerificationStage()
 {
     /*
@@ -923,7 +804,7 @@ void Eval::protocolVerificationStage()
     }
     bb->verifyStageDone[id] = true;
 }
-void Eval::announceWinner()
+void Bidder::announceWinner()
 {
     uint winBid = 0;
     uint lastDecider = 0;
@@ -946,7 +827,7 @@ void Eval::announceWinner()
  * This function interacts with the winner to verify that the bit codes used by the winner during each round
  * correspond the bits of winning bid.
 */
-bool Eval::verifyWinnerClaim()
+bool Bidder::verifyWinnerClaim()
 {
 
     bool retval = false;
@@ -1048,7 +929,7 @@ bool Eval::verifyWinnerClaim()
         grp->power(&v,&e, tj);
         grp->elementMultiply(&f, &u, &v);
 
-        GroupElement a = GroupElement(grp, &bb->bidderBB[winId].msgEnc_0[j]);
+        GroupElement a = GroupElement(grp, &bb->bidderBB[winId].msgEnc_1[j]);
 
         grp->elementMultiply(origBitCode[j], &f, &a);
     }
@@ -1109,6 +990,7 @@ cleanup:
     return retval;
         
 }
+#endif // COMMENT
 
 void Bidder::printBuffer(unsigned char *buffer, uint n)
 {

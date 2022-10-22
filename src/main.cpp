@@ -26,19 +26,14 @@ int main(int argc, char const *argv[])
 		exit(-1);
 	}
 
-	if(strcmp(argv[1],"0") == 0)
-	{
-		//cout << "Process is an Evaluator" << endl;
-		processType = pEvaluator;
-		
-	}
-	else if(strcmp(argv[1],"99") == 0)
+
+	if(strcmp(argv[1],"99") == 0)
 	{
 		//cout << "Process is a Verifier" << endl;
 		processType = pVerifier;
 	}
 	else
-	{
+	{ 
 		//cout << "Process is a Bidder" << endl;
 		processType = pBidder;
 
@@ -53,17 +48,22 @@ int main(int argc, char const *argv[])
     //Set size
     shm.truncate(sizeof(struct BulletinBoard));
 
+
     //Map the whole shared memory in this process
     mapped_region region(shm, read_write);
 
     BulletinBoard *bb = static_cast<BulletinBoard*>(region.get_address());
+
 	uint id = atoi(argv[1]);
 	uint size = region.get_size();
 	uint bidvalue = atoi(argv[2]);
    	
-
+	// printf("id = %d, size = %d, bidvalue = %d\n", id, size, bidvalue);
+	
     switch(processType)
 	{
+#ifdef COMMENT
+
 		case pEvaluator:
 		{
 			
@@ -104,11 +104,16 @@ int main(int argc, char const *argv[])
     			printf("Winner verification is failure\n");	
 			break;
 		}
+#endif // COMMENT
+
 		case pBidder:
 		{
 			
 			Bidder bidder = Bidder((D+100*id), bidvalue, D, ADDR_Verify, id, bb);
+			printf("Entering setup for bidder %d\n",id);
+
 			bidder.protocolSetupStage();
+			printf("Finished setup for bidder %d\n",id);
 			bidder.protocolComputeStageBidder();
 			bidder.protocolVerificationStage();
 			

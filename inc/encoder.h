@@ -7,7 +7,7 @@
 //GroupElement publickey[MAX_BIDDERS][MAX_BIT_LENGTH];
 //BIGNUM* privateKey[MAX_BIDDERS][MAX_BIT_LENGTH];
 
-class Eval;
+class Bidder;
 
 class Encoder
 {
@@ -23,7 +23,7 @@ public:
 
 	uint computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBoard* bb);
 	
-	bool decodeBitcode(uint j, Eval* eval);
+	bool decodeBitcode(uint j, Bidder* bidder);
 
 	bool checkAddition(EC_POINT *e1, EC_POINT *e2, EC_POINT *e3);
 

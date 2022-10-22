@@ -93,16 +93,10 @@ void verifybidderWinProof(uint id)
 		printf("Id value is corrupted. Exiting\n");
 		exit(-1);
 	}
-	if(id == 0)
-	{
-		BBMemoryEval *evalBB = static_cast<struct BBMemoryEval *>(&bb->evalBB);
-		gpt = &evalBB->common.commitment;
-	}
-	else
-	{
-		BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[id]);
-		gpt = &bidderBB->common.commitment;
-	}
+
+	BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[id]);
+	gpt = &bidderBB->commitment;
+	
 
 	GroupElement e = GroupElement(grp, gpt); // Create a GroupElement using the commitment available on BB
 
@@ -191,7 +185,7 @@ bool verifyEvalWinProof()
     {
     	for(uint j=0; j < MAX_BIT_LENGTH; j++)
     	{
-    		Gval[i][j] = new GroupElement(grp, &bb->evalBB.G[i][j]); //Retrieve G values from BB
+    		Gval[i][j] = new GroupElement(grp, &bb->bidderBB[i].G[j]); //Retrieve G values from BB
 #ifdef DEBUG    		
     		printf("Gval[%d][%d]\n",i,j);
     		grp->printGroupElement(Gval[i][j]);
@@ -201,7 +195,7 @@ bool verifyEvalWinProof()
     }
     GroupElement e = GroupElement(grp);
     GroupElement f = GroupElement(grp);
-    GroupElement *t1 = new GroupElement(grp, &bb->evalBB.T1);
+    GroupElement *t1 = grp->T1;
     bool retval;
 
     

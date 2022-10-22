@@ -4,6 +4,19 @@
 #include "group.h"
 
 
+// We generate the generators used in our protocol in our code in NUMS fashion by hasing the uncompressed version
+// of the genreator point (which includes the strings for x and y coordinates), generate SHA256 hash of it.
+// The resultant value of hash is used as the x-coordinate to evaluate the curve at the point 
+
+
+
+unsigned char curvePrime[32] {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xfc, 0x2f,
+};
+
 GroupElement::GroupElement(Group *_grp)
 {
 	grp = _grp;
@@ -41,6 +54,51 @@ GroupElement::GroupElement(Group *_grp, GrpPoint *_gpt)
 		printf("ERROR occurred while setting affine coordinates\n");
 		printGroupPoint(_gpt);
 	}
+}
+
+void Group::initGroup()
+{
+			BN_CTX *ctx = BN_CTX_new();
+    		BIGNUM *k; 
+			
+			EC_POINT *i = EC_POINT_new(ecg);
+			BIGNUM *x = BN_new();
+			BIGNUM *y = BN_new();
+			BN_set_word(x, 0);
+			BN_set_word(y, 0);
+			
+			EC_POINT_set_affine_coordinates(ecg, i, x, y,ctx);
+			ident = new GroupElement(i, this);
+
+    		k = BN_new(); // Place holder for the order of group
+			EC_GROUP_get_order(ecg, k, ctx);
+			q = BN_new();
+			q = k;
+			//printf("q = \n");
+			//BN_print_fp(stdout, q);
+
+			
+			numBitsInOrder = BN_num_bits(k);
+			EC_POINT *ecpg = (EC_POINT *) EC_GROUP_get0_generator(ecg);
+			g = new GroupElement(ecpg, this);
+
+			//printf("g = \n");
+			//printGroupElement(g);
+
+			chooseNUMSPoints();
+
+
+			if(EC_POINT_set_to_infinity(ecg, ident->ep) == 0)
+			{
+				printf("Setting point to infinity failed\n");
+			}
+
+
+#ifdef DEBUG			
+			
+			printf("****Group initialized****\n");
+			printGroupParams();
+#endif			
 }
 
 void GroupElement::setPoint()
@@ -104,7 +162,6 @@ GroupElement* Group::getRandomGroupElement()
     } 
 	return r;
 }	
-
 
 
 
@@ -264,6 +321,8 @@ void Group::printGroupParams()
 	printGroupElement(h);
 	printf("Element g1 is:\n");
 	printGroupElement(g1);
+	printf("Element T1 is:\n");
+	printGroupElement(T1);
 	printf("Order of Group q is:\n");
 	BN_print_fp(stdout, q);
 	cout << endl;
@@ -283,4 +342,140 @@ void Group::printECPoint(EC_POINT* ep)
    	cout << endl;
     BN_free(x);
     BN_free(y);
+}
+
+// The following function evaluates the secp256k1 curve at the point x and sets the value y accordingly.
+// The equation used is: y^2 = x^3 +7 mod p
+// where p = 0xffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f
+void Group::eval(BIGNUM* x, BIGNUM* y)
+{
+	BIGNUM *c = BN_new();
+	BIGNUM *p = BN_new();
+	BIGNUM *xsq = BN_new();
+	BN_CTX *ctx = BN_CTX_new();
+	BIGNUM *t = BN_new();
+
+	BN_set_word(c, 7);
+
+	BN_bin2bn(curvePrime, MAX_BIG_NUM_SIZE, p);
+	BN_mod_sqr(xsq, x, p, ctx); // xsq = x^2
+	BN_mod_mul(t, x, xsq, p,ctx); // t = x^3
+	BN_mod_add(t, t, c, p, ctx); // t = x^3 +7
+
+	BN_mod_sqrt(y, t, p, ctx); // y = sqrt(x^3 + 7);
+
+// There are two square roots - one is a negative of the other. We choose the second one for our use.
+	BN_mod_sub(y, p, y, p, ctx); // y = p-y
+
+
+#ifdef DEBUG
+	printf("Eval: x and y are:\n");
+	BN_print_fp(stdout, x);
+	cout << endl;
+	BN_print_fp(stdout, y);
+	cout << endl;
+#endif // DEBUG
+
+	BN_CTX_free(ctx);
+	BN_free(c);
+	BN_free(p);
+	BN_free(xsq);
+	BN_free(t);
+
+
+}
+
+void Group::chooseNUMSPoints()
+{
+    // We repeatedly hash the generator g and check if the resulting point is a valid point on curve.
+    BIGNUM *x = BN_new();
+    BIGNUM *y = BN_new();
+
+    unsigned char buffer[2*MAX_BIG_NUM_SIZE+1];
+    buffer[0] = 0x04;
+
+
+    // Choose the generator h by hashing g
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+
+    //EC_POINT_point2oct(grp->ecg, grp->g->ep, POINT_CONVERSION_UNCOMPRESSED, buffer, MAX_BIG_NUM_SIZE+1, NULL);
+    
+    memcpy(buffer+1, g->gpt.gx, MAX_BIG_NUM_SIZE );
+    memcpy( buffer+1+MAX_BIG_NUM_SIZE, g->gpt.gy, MAX_BIG_NUM_SIZE );
+    
+    
+    int rc;
+
+    SHA256(buffer, 2*MAX_BIG_NUM_SIZE+1, hash);
+    
+    BN_bin2bn(hash, MAX_BIG_NUM_SIZE,x);
+    
+
+    eval(x, y);
+
+    EC_POINT *eph = EC_POINT_new(ecg);
+
+    if(EC_POINT_set_affine_coordinates(ecg, eph, x, y, NULL) == 0)
+    {   
+        printf("chooseNUMSPoints ERROR occurred while setting affine coordinates of h\n");
+        printECPoint(eph);
+    }
+    
+    rc = EC_POINT_is_on_curve(ecg, eph, NULL);
+
+    if(rc == 1)
+    {
+        h = new GroupElement(eph, this);
+    }
+
+    // Choose the generator g1 by hashing g twice
+    
+    
+    
+    SHA256(hash, SHA256_DIGEST_LENGTH, hash);
+    BN_bin2bn(hash, MAX_BIG_NUM_SIZE,x);
+
+
+    eval(x, y);
+
+    EC_POINT *epg1 = EC_POINT_new(ecg);
+
+    if(EC_POINT_set_affine_coordinates(ecg, epg1, x, y, NULL) == 0)
+    {   
+        printf("chooseNUMSPoints ERROR occurred while setting affine coordinates of h\n");
+        printECPoint(epg1);
+    }
+    
+    rc = EC_POINT_is_on_curve(ecg, epg1, NULL);
+
+    if(rc == 1)
+    {
+        g1 = new GroupElement(epg1, this);
+    }
+    
+    // Choose the generator T1 by hashing g thrice
+    SHA256(hash, SHA256_DIGEST_LENGTH, hash);
+    BN_bin2bn(hash, MAX_BIG_NUM_SIZE,x);
+
+
+    eval(x, y);
+
+    EC_POINT *ept1 = EC_POINT_new(ecg);
+
+    if(EC_POINT_set_affine_coordinates(ecg, ept1, x, y, NULL) == 0)
+    {   
+        printf("chooseNUMSPoints ERROR occurred while setting affine coordinates of h\n");
+        printECPoint(ept1);
+    }
+    
+    rc = EC_POINT_is_on_curve(ecg, ept1, NULL);
+
+    if(rc == 1)
+    {
+        T1 = new GroupElement(ept1, this);
+    }
+
+#ifdef DEBUG
+    printGroupParams();
+#endif 
 }
