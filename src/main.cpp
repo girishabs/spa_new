@@ -106,14 +106,15 @@ int main(int argc, char const *argv[])
 		}
 #endif // COMMENT
 
+
 		case pBidder:
 		{
 			
 			Bidder bidder = Bidder((D+100*id), bidvalue, D, ADDR_Verify, id, bb);
-			printf("Entering setup for bidder %d\n",id);
+			//printf("Entering setup for bidder %d\n",id);
 
 			bidder.protocolSetupStage();
-			printf("Finished setup for bidder %d\n",id);
+			//printf("Finished setup for bidder %d\n",id);
 			bidder.protocolComputeStageBidder();
 			bidder.protocolVerificationStage();
 			

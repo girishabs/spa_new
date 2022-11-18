@@ -177,6 +177,8 @@ public:
 
 	bool bitsOfBid[MAX_BIT_LENGTH];
 
+	bool winBit[MAX_BIT_LENGTH]; // The winning bits during each round
+
 	uint value;
 	Group *grp; // The Group on which all crypto primitives are based
 	BBMemoryBidder *bidderBB; // Pointer to the bulletin board where bidder can write its artefacts

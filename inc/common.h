@@ -90,6 +90,7 @@ struct BulletinBoard
 	bool sentBitCodes[MAX_BIDDERS][MAX_BIT_LENGTH];
 	bool setupStageDone[MAX_BIDDERS];
 	bool computeStageDone[MAX_BIDDERS];
+	bool updatedBB[MAX_BIDDERS][MAX_BIT_LENGTH];
 	bool verifyStageDone[MAX_BIDDERS];
 
 	bool computeBit[MAX_BIDDERS][MAX_BIT_LENGTH]; // All bidders
