@@ -112,6 +112,7 @@ public:
 		GroupElement *g1; //second generator
 		GroupElement *h; //Group Element used for Commitments
 		GroupElement *T1; // Group Element used for OT
+		GroupElement *invT1; // Group Element used for OT
 
 		GroupElement *ident;
 

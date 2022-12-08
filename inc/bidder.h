@@ -34,10 +34,7 @@ public:
 
 		grp = new Group(NID_secp256k1);
 		enc = new Encoder(grp);
-		commitObj = new commitment(grp); 
 		
-		bidCommit = new GroupElement(grp);
-	
 		value = v;
 		bidval = b;
 		deposit = d;
@@ -68,13 +65,16 @@ public:
 			grp->power(&f, grp->h, t[j]);
 			grp->elementMultiply(&e,&e,&f);
 			bidderBB->z[j] = e.gpt;
+			// printf("z[%d][%d] is:\n",id, j);
+			// grp->printGroupElement(&e);
+			usleep(1);
 		}
 
 		
 		for(uint k = 0; k < MAX_BIT_LENGTH; k++)
 		{
 			bitcode[k] = new GroupElement(grp);	
-			zeroBitCode = new GroupElement(grp);	
+			zeroBitCode = GroupElement(grp);	
 
 		}
 
@@ -111,12 +111,11 @@ public:
 			BN_free(t[j]);
 			
 			delete bitcode[j];	
-			delete zeroBitCode;
+			//delete zeroBitCode;
 
 			BN_free(beta[j]);
 			BN_free(invbeta[j]);
 		}	
-		delete bidCommit;
 		delete grp;	
 
 		sem_close(bidder_thr_sem);
@@ -184,10 +183,6 @@ public:
 	BBMemoryBidder *bidderBB; // Pointer to the bulletin board where bidder can write its artefacts
 	Encoder *enc;
 
-	// Pedersen Commitment
-	commitment *commitObj; // Class containaing commitment methods
-	GroupElement *bidCommit; // GroupElement that acts as the commitment to a bid value
-	BIGNUM *rcommit;  // Randomness used in commitment
 	BIGNUM *bid; // Bid value represented as BIGNUM
 
 	BIGNUM* x[MAX_BIT_LENGTH]; // Private key for computing the 0-bit code
@@ -200,7 +195,7 @@ public:
 
 
 	GroupElement *bitcode[MAX_BIT_LENGTH]; // Bit codes used during the computation stage
-	GroupElement *zeroBitCode; // Place holder to store zero bit codes during a round
+	GroupElement zeroBitCode; // Place holder to store zero bit codes during a round
 
 
 	GroupElement* bidderBitcode[MAX_BIDDERS]; // Place holder to store the bit codes for computation

@@ -8,10 +8,6 @@
 #include "bidder.h"
 #include <cmath>
 
-#include "verify.h"
-
-
-
 int main(int argc, char const *argv[])
 {
 
@@ -62,51 +58,6 @@ int main(int argc, char const *argv[])
 	
     switch(processType)
 	{
-#ifdef COMMENT
-
-		case pEvaluator:
-		{
-			
-			auto st_start = std::chrono::high_resolution_clock::now();
-
-			Eval eval = Eval(1, bidvalue, D, ADDR_Verify, 0, bb);
-			{
-				eval.initEval();
-				eval.protocolSetupStage();
-
-				auto st_end = std::chrono::high_resolution_clock::now();
-
-		    	std::chrono::duration<double, std::milli> st_float_ms = st_end - st_start;
-
-    			std::cout << "Total Setup stage elapsed time is " << 
-    			st_float_ms.count() << " milliseconds" << std::endl;
-			}	
-
-			{
-				auto start = std::chrono::high_resolution_clock::now();
-
-
-				eval.protocolComputeStageEval();
-				auto end = std::chrono::high_resolution_clock::now();
-
-		    	std::chrono::duration<double, std::milli> float_ms = end - start;
-
-    			std::cout << "Total Computation stage elapsed time is " << 
-    			float_ms.count() << " milliseconds" << std::endl;
-    		}
-
-    		eval.protocolVerificationStage();
-    		if(eval.verifyWinnerClaim() == true)
-    		{
-    			printf("Winner verification is successful\n");
-    		}
-    		else
-    			printf("Winner verification is failure\n");	
-			break;
-		}
-#endif // COMMENT
-
-
 		case pBidder:
 		{
 			
@@ -116,20 +67,27 @@ int main(int argc, char const *argv[])
 			bidder.protocolSetupStage();
 			//printf("Finished setup for bidder %d\n",id);
 			bidder.protocolComputeStageBidder();
-			bidder.protocolVerificationStage();
+			//bidder.protocolVerificationStage();
 			
 			break;	
 		}
 		case pVerifier:
 		{
-			Verify ver = Verify(bb);
-			ver.runVerify();
+			//Verify ver = Verify(bb);
+			//ver.runVerify();
 			
 			break;
 		}
 		default:
 			cout << "Unrecognized types" << endl;
 	}
+
+	auto st_end = std::chrono::high_resolution_clock::now();
+
+	std::chrono::duration<double, std::milli> st_float_ms = st_end - start;
+
+    std::cout << "Total elapsed time is " << 
+    	st_float_ms.count() << " ms for bidder " << id << std::endl;
 
 	return 0;
 }

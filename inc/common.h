@@ -23,8 +23,8 @@ typedef unsigned int uint;
 // Change the following for varying the number of bidders and length of bit string.
 // Note that this change recompiles all files.
 
-#define MAX_BIT_LENGTH 4
-#define MAX_BIDDERS 2
+#define MAX_BIT_LENGTH 10
+#define MAX_BIDDERS 30
 
 
 #define D 1000
@@ -66,7 +66,6 @@ typedef enum ProcessTypes
 
 struct BBMemoryBidder
 {
-	GrpPoint commitment;
 	GrpPoint pubKey[MAX_BIT_LENGTH];
 	
 	// OT Parameters
@@ -78,7 +77,10 @@ struct BBMemoryBidder
 	GrpPoint zeta[MAX_BIT_LENGTH];
 	GrpPoint z[MAX_BIT_LENGTH];
 	GrpPoint T;
+
 	GrpPoint bitCode[MAX_BIT_LENGTH];
+	GrpPoint OTPostBox[MAX_BIDDERS][MAX_BIT_LENGTH]; // To receive the OT message C_1 posted by other bidders
+
 	bool bidBits[MAX_BIT_LENGTH];
 };
 
@@ -98,10 +100,7 @@ struct BulletinBoard
 	uint winningBid;
 	zqPoint bidderWinProof[MAX_BIDDERS];
 	KnowledgeProof kProof[MAX_BIDDERS];
-	zqPoint evalWinProof[MAX_BIT_LENGTH];
-	GrpPoint proofOfComputation[MAX_BIDDERS][MAX_BIT_LENGTH];
 	int winnerClaim;
-	zqPoint bidderKeyHash[MAX_BIDDERS];
 	zqPoint xWinner[MAX_BIT_LENGTH]; // Winner's private key for 0 bit code.
 	zqPoint rWinner[MAX_BIT_LENGTH]; // Winner's private key for 1 bit code.
 

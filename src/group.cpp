@@ -461,8 +461,17 @@ void Group::chooseNUMSPoints()
     eval(x, y);
 
     EC_POINT *ept1 = EC_POINT_new(ecg);
+    EC_POINT *ept2 = EC_POINT_new(ecg);
+
 
     if(EC_POINT_set_affine_coordinates(ecg, ept1, x, y, NULL) == 0)
+    {   
+        printf("chooseNUMSPoints ERROR occurred while setting affine coordinates of h\n");
+        printECPoint(ept1);
+    }
+
+    // Create a duplicate to get the inverse
+    if(EC_POINT_set_affine_coordinates(ecg, ept2, x, y, NULL) == 0)
     {   
         printf("chooseNUMSPoints ERROR occurred while setting affine coordinates of h\n");
         printECPoint(ept1);
@@ -470,10 +479,15 @@ void Group::chooseNUMSPoints()
     
     rc = EC_POINT_is_on_curve(ecg, ept1, NULL);
 
-    if(rc == 1)
-    {
-        T1 = new GroupElement(ept1, this);
-    }
+   	// We first get T1 into the invT1 variable and then invert the same to get actual inverse.
+   	// This is because, underlying library clobbers the passed parameter.
+
+    invT1 = new GroupElement(ept2, this); 
+    getInverse(invT1);
+
+    // Now that invT1 is fixed, create actual T1
+    T1 = new GroupElement(ept1, this); 
+    
 
 #ifdef DEBUG
     printGroupParams();
