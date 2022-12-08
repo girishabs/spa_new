@@ -9,6 +9,7 @@
 #include <boost/interprocess/mapped_region.hpp>
 #include <cstdint>
 #include <openssl/sha.h>
+#include <pthread.h>
 #include "group.h"
 
 
@@ -24,7 +25,7 @@ typedef unsigned int uint;
 // Note that this change recompiles all files.
 
 #define MAX_BIT_LENGTH 10
-#define MAX_BIDDERS 30
+#define MAX_BIDDERS 3
 
 
 #define D 1000
@@ -82,6 +83,8 @@ struct BBMemoryBidder
 	GrpPoint OTPostBox[MAX_BIDDERS][MAX_BIT_LENGTH]; // To receive the OT message C_1 posted by other bidders
 
 	bool bidBits[MAX_BIT_LENGTH];
+	pthread_mutex_t mutex;
+	pthread_cond_t condition;
 };
 
 struct BulletinBoard

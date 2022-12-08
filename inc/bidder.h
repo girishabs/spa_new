@@ -210,6 +210,11 @@ public:
 	GrpPoint H1[MAX_BIT_LENGTH];
 	GroupElement *T;			
 
+
+	pthread_cond_t *cond; // Conditional variable
+	pthread_mutex_t *mutex; // Corresponding mutex
+
+
 	// Bits used during computation by Evaluator					
 	uint evalComputeBit[MAX_BIT_LENGTH];
 	sem_t eval_thr_sem[MAX_BIDDERS];
