@@ -25,7 +25,7 @@ typedef unsigned int uint;
 // Note that this change recompiles all files.
 
 #define MAX_BIT_LENGTH 10
-#define MAX_BIDDERS 3
+#define MAX_BIDDERS 10
 
 
 #define D 1000
@@ -83,8 +83,15 @@ struct BBMemoryBidder
 	GrpPoint OTPostBox[MAX_BIDDERS][MAX_BIT_LENGTH]; // To receive the OT message C_1 posted by other bidders
 
 	bool bidBits[MAX_BIT_LENGTH];
-	pthread_mutex_t mutex;
-	pthread_cond_t condition;
+
+#ifdef MUTEX	
+	pthread_mutex_t ot_mutex;
+	pthread_cond_t ot_condition;
+	pthread_mutex_t bc_mutex;
+	pthread_cond_t bc_condition;
+	pthread_mutex_t bb_mutex;
+	pthread_cond_t bb_condition;
+#endif // MUTEX	
 };
 
 struct BulletinBoard

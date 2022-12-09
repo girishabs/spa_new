@@ -26,16 +26,16 @@ killall auction
 killall xterm
 #auction 0 3 &
 #auction 1 7 &
-xterm -hold -e $HOME/Documents/prog/spa-code/auction 0 815 &
-xterm -hold -e $HOME/Documents/prog/spa-code/auction 1 909 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 0 275 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 1 579 &
 xterm -hold -e $HOME/Documents/prog/spa-code/auction 2 182 &
-#xterm -hold -e $HOME/Documents/prog/spa-code/auction 3 102 &
-#xterm -hold -e $HOME/Documents/prog/spa-code/auction 4 992 &
-#xterm -hold -e $HOME/Documents/prog/spa-code/auction 5 743 &
-#xterm -hold -e $HOME/Documents/prog/spa-code/auction 6 232 &
-#xterm -hold -e $HOME/Documents/prog/spa-code/auction 7 132 &
-#xterm -hold -e $HOME/Documents/prog/spa-code/auction 8 485 &
-#xterm -hold -e $HOME/Documents/prog/spa-code/auction 9 812 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 3 102 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 4 813 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 5 743 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 6 232 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 7 132 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 8 485 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 9 812 &
 #xterm -hold -e $HOME/Documents/prog/spa-code/auction 10 802 &
 #xterm -hold -e $HOME/Documents/prog/spa-code/auction 11 822 &
 #xterm -hold -e $HOME/Documents/prog/spa-code/auction 12 842 &

@@ -134,18 +134,41 @@ void Bidder::initBidder()
         bidderBitcode[i] = new GroupElement(grp);           
     } 
 
-    /* set mutex shared between processes */
+#ifdef MUTEX
+    /* set OT mutex shared between processes */
     pthread_mutexattr_t mattr;
     pthread_mutexattr_init(&mattr);
     pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&bb->bidderBB[id].mutex, &mattr);
-    pthread_mutexattr_destroy(&mattr);
-    /* set condition shared between processes */
+    pthread_mutex_init(&bb->bidderBB[id].ot_mutex, &mattr);
+    
+    /* set OT condition shared between processes */
     pthread_condattr_t cattr;
     pthread_condattr_init(&cattr);
     pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&bb->bidderBB[id].condition, &cattr);
-    pthread_condattr_destroy(&cattr);    
+    pthread_cond_init(&bb->bidderBB[id].ot_condition, &cattr);
+    
+    /* set BC mutex shared between processes */
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&bb->bidderBB[id].bc_mutex, &mattr);
+    
+    /* set BC condition shared between processes */
+    pthread_condattr_init(&cattr);
+    pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&bb->bidderBB[id].bc_condition, &cattr);
+    
+    /* set BB mutex shared between processes */
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&bb->bidderBB[id].bb_mutex, &mattr);
+    pthread_mutexattr_destroy(&mattr);
+    
+    /* set BB condition shared between processes */
+    pthread_condattr_init(&cattr);
+    pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&bb->bidderBB[id].bb_condition, &cattr);
+    pthread_condattr_destroy(&cattr);   
+#endif // MUTEX    
 }
 
 
@@ -296,11 +319,12 @@ PStage Bidder::protocolComputeStageBidder()
             bidderBB->G[j] = G1[j] ;    
             bidderBB->H[j] = H1[j] ; 
         }
-
-        pthread_mutex_lock(&bb->bidderBB[id].mutex);
-        pthread_cond_signal(&bb->bidderBB[id].condition);
-        printf("Bidder %d: OT Parameters updated\n",id);
-        pthread_mutex_unlock(&bb->bidderBB[id].mutex);
+#ifdef MUTEX
+        pthread_mutex_lock(&bb->bidderBB[id].ot_mutex);
+        pthread_cond_signal(&bb->bidderBB[id].ot_condition);
+        printf("Bidder %d: OT Parameters updated in round %d\n",id,j);
+        pthread_mutex_unlock(&bb->bidderBB[id].ot_mutex);
+#endif // MUTEX        
 
         bb->OTParamsUpdated[id][j] = true;   
 
@@ -309,11 +333,12 @@ PStage Bidder::protocolComputeStageBidder()
         {
             if(i == id)
                 continue; // Ignore self
-
-            pthread_mutex_lock(&bb->bidderBB[i].mutex);
-            pthread_cond_wait(&bb->bidderBB[i].condition, &bb->bidderBB[i].mutex);
-            printf("Bidder %d: OT Parameters available from bidder %d\n",id, i);
-            pthread_mutex_unlock(&bb->bidderBB[i].mutex);
+#ifdef MUTEX
+            pthread_mutex_lock(&bb->bidderBB[i].ot_mutex);
+            pthread_cond_wait(&bb->bidderBB[i].ot_condition, &bb->bidderBB[i].ot_mutex);
+            printf("Bidder %d: OT Parameters available from bidder %d in round %d\n",id, i,j);
+            pthread_mutex_unlock(&bb->bidderBB[i].ot_mutex);
+#endif // MUTEX        
 
             while(bb->OTParamsUpdated[i][j] != true) // Wait for Bidder i to update the OT parameters.
                 usleep(1);
@@ -352,11 +377,13 @@ PStage Bidder::protocolComputeStageBidder()
         //   e.printGroupPoint(&bidderBB->z[j]); 
         
         }    
+#ifdef MUTEX
+        pthread_mutex_lock(&bb->bidderBB[id].bc_mutex);
+        pthread_cond_signal(&bb->bidderBB[id].bc_condition);
+        printf("Bidder %d: Bit codes sent in round %d\n",id,j);
+        pthread_mutex_unlock(&bb->bidderBB[id].bc_mutex);
+#endif // MUTEX        
 
-        pthread_mutex_lock(&bb->bidderBB[id].mutex);
-        pthread_cond_signal(&bb->bidderBB[id].condition);
-        printf("Bidder %d: Bit codes sent\n",id);
-        pthread_mutex_unlock(&bb->bidderBB[id].mutex);
         bb->sentBitCodes[id][j] = true;
 
         
@@ -374,11 +401,12 @@ PStage Bidder::protocolComputeStageBidder()
                     continue; // Ignore self
                 }
                 //printf("Bidder %d is waiting for bidder %d to send bit code in round %d\n",id, i,j);
-
-                pthread_mutex_lock(&bb->bidderBB[i].mutex);
-                pthread_cond_wait(&bb->bidderBB[i].condition, &bb->bidderBB[i].mutex);
-                printf("Bidder %d: Bit codes available from bidder %d\n",id, i);
-                pthread_mutex_unlock(&bb->bidderBB[i].mutex);
+#ifdef MUTEX
+                pthread_mutex_lock(&bb->bidderBB[i].bc_mutex);
+                pthread_cond_wait(&bb->bidderBB[i].bc_condition, &bb->bidderBB[i].bc_mutex);
+                printf("Bidder %d: Bit codes available from bidder %d\n in round %d",id, i,j);
+                pthread_mutex_unlock(&bb->bidderBB[i].bc_mutex);
+#endif // MUTEX        
 
                 while(bb->sentBitCodes[i][j] == false)
                     usleep(1); // Wait for all other bidders to send their bit codes    
@@ -438,11 +466,13 @@ PStage Bidder::protocolComputeStageBidder()
         bb->bidderBB[id].bitCode[j] = bitcode[j]->gpt;
         //printf("Bidder %d: Written Bit code[%d][%d] is:\n",id, id,j);
         //grp->printGroupElement(bitcode[j]);
-        
-        pthread_mutex_lock(&bb->bidderBB[id].mutex);
-        pthread_cond_signal(&bb->bidderBB[id].condition);
-        printf("Bidder %d: BB Updated\n",id);
-        pthread_mutex_unlock(&bb->bidderBB[id].mutex);
+
+#ifdef MUTEX        
+        pthread_mutex_lock(&bb->bidderBB[id].bb_mutex);
+        pthread_cond_signal(&bb->bidderBB[id].bb_condition);
+        printf("Bidder %d: BB Updated in round %d\n",id, j);
+        pthread_mutex_unlock(&bb->bidderBB[id].bb_mutex);
+#endif // MUTEX        
 
         bb->updatedBB[id][j] = true;
 
@@ -454,10 +484,13 @@ PStage Bidder::protocolComputeStageBidder()
             if(i == id)
                 continue;
             //printf("Bidder %d is waiting for bidder %d to write bit code to BB in round %d\n",id, i,j);
-            pthread_mutex_lock(&bb->bidderBB[i].mutex);
-            pthread_cond_wait(&bb->bidderBB[i].condition, &bb->bidderBB[i].mutex);
-            printf("Bidder %d: Bit codes available on BB from bidder %d\n",id, i);
-            pthread_mutex_unlock(&bb->bidderBB[i].mutex);
+#ifdef MUTEX            
+            pthread_mutex_lock(&bb->bidderBB[i].bb_mutex);
+            pthread_cond_wait(&bb->bidderBB[i].bb_condition, &bb->bidderBB[i].bb_mutex);
+            printf("Bidder %d: Bit codes available on BB from bidder %d in round %d\n",id, i,j);
+            pthread_mutex_unlock(&bb->bidderBB[i].bb_mutex);
+#endif // MUTEX        
+
             while(!bb->updatedBB[i][j])
                 usleep(1);
                 //sleep(1);
@@ -481,15 +514,7 @@ PStage Bidder::protocolComputeStageBidder()
 
             printf("Bidder %d: Winning bit for round %d is %d\n",id, j, winBit[j]);
 
-        sem_post(bidder_thr_sem); 
-
-        //printf("Bidder %d is waiting for computeStage in round %d\n",id,j);
-
-        //sem_wait(bidder_sync_sem); // Wait till Evaluator has completed tasks in round j
-
-        //while(bb->evalUpdatedRound != k);
-        
-        
+    
         if((winBit[j] == 1) && (computeBit == false) && (highestBidder == false))
             auctionLost = true;
         //cout << "Round " << j << " is completed for bidder " << id << endl;
