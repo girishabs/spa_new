@@ -23,7 +23,7 @@ int main(int argc, char const *argv[])
 	}
 
 
-	if(strcmp(argv[1],"99") == 0)
+	if(strcmp(argv[1],"999") == 0)
 	{
 		//cout << "Process is a Verifier" << endl;
 		processType = pVerifier;
