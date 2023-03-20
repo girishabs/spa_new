@@ -17,6 +17,7 @@ public:
 	BulletinBoard* bb;
 	uint currentRound;
 	bool auctionLost;
+	bool highestBidder;
 	void printBidBits()
 	{
 		printf("Bits of the bid %X for bidder %d are: ",bidval, id);
@@ -43,6 +44,7 @@ public:
 		uint mask = 1;
 		bb = static_cast<struct BulletinBoard *>(_bb);
 		auctionLost = false;
+		highestBidder = false;
 		currentRound = 0; // The round 0 is invalid value. Valid range for rounds is [1,...,l]
 
 		
@@ -71,12 +73,22 @@ public:
 		}
 
 		
-		for(uint k = 0; k < MAX_BIT_LENGTH; k++)
+		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
 		{
-			bitcode[k] = new GroupElement(grp);	
-			zeroBitCode = GroupElement(grp);	
+			bitcode[j] = new GroupElement(grp);	
+
+			zeroToken[j] = new GroupElement(grp);	
+			ztCommit[j] = new GroupElement(grp);	
 
 		}
+		for(uint i = 0; i < MAX_BIDDERS; i++)
+		{
+			for(uint j = 0; j < MAX_BIT_LENGTH; j++)
+			{
+				bidderZToken[i][j] = new GroupElement(grp);
+			}
+		}		
+		zeroBitCode = GroupElement(grp);	
 
 		char name[32];
 
@@ -111,12 +123,20 @@ public:
 			BN_free(t[j]);
 			
 			delete bitcode[j];	
-			//delete zeroBitCode;
+			delete zeroToken[j];
+			delete ztCommit[j];
 
 			BN_free(beta[j]);
 			BN_free(invbeta[j]);
 		}	
 		delete grp;	
+		for(uint i = 0; i < MAX_BIDDERS; i++)
+		{
+			for(uint j = 0; j < MAX_BIT_LENGTH; j++)
+			{
+				delete bidderZToken[i][j];
+			}
+		}
 
 		sem_close(bidder_thr_sem);
 		sem_close(comp_stg_sem);
@@ -130,7 +150,6 @@ public:
 			sem_close(&eval_thr_sem[i]);
 			sem_close(&eval_sync_sem[i]);
 		}	
-
 	}
 
 	void printBuffer(unsigned char *buffer, uint n);
@@ -208,7 +227,14 @@ public:
 	GrpPoint H0[MAX_BIT_LENGTH];
 	GrpPoint G1[MAX_BIT_LENGTH];
 	GrpPoint H1[MAX_BIT_LENGTH];
-	GroupElement *T;			
+	GroupElement *T;
+
+	// Zero Tokens used to prove that correct choice bit is used for OT
+	BIGNUM * omega[MAX_BIT_LENGTH]; // Random value to generate Zero token is picked from Z_q 
+	BIGNUM * delta[MAX_BIT_LENGTH]; // Random value to commit to Zero token is picked from Z_q 
+	GroupElement *zeroToken[MAX_BIT_LENGTH]; // zeroToken = g^omega
+	GroupElement *ztCommit[MAX_BIT_LENGTH]; // Pedersen Commitment to omega - used to generate zeroToken. 
+	GroupElement *bidderZToken[MAX_BIDDERS][MAX_BIT_LENGTH]; // Array to store the zero tokens received from other parties.
 
 
 	pthread_cond_t *cond; // Conditional variable

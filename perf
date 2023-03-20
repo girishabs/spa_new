@@ -35,7 +35,7 @@ xterm -hold -e $HOME/Documents/prog/spa-code/auction 5 743 &
 xterm -hold -e $HOME/Documents/prog/spa-code/auction 6 232 &
 xterm -hold -e $HOME/Documents/prog/spa-code/auction 7 132 &
 xterm -hold -e $HOME/Documents/prog/spa-code/auction 8 485 &
-xterm -hold -e $HOME/Documents/prog/spa-code/auction 9 812 &
+xterm -hold -e $HOME/Documents/prog/spa-code/auction 9 1012 &
 #xterm -hold -e $HOME/Documents/prog/spa-code/auction 10 802 &
 #xterm -hold -e $HOME/Documents/prog/spa-code/auction 11 822 &
 #xterm -hold -e $HOME/Documents/prog/spa-code/auction 12 842 &

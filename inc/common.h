@@ -67,6 +67,11 @@ typedef enum ProcessTypes
 
 struct BBMemoryBidder
 {
+	GrpPoint bitCommit[MAX_BIT_LENGTH]; // Commitments to each bit of the bid value
+	GrpPoint ztCommit[MAX_BIT_LENGTH]; // Commitments to zeroToken for each round
+	GrpPoint zeroToken[MAX_BIT_LENGTH]; // zero token for each round
+	zqPoint  ztDelta[MAX_BIT_LENGTH]; // The randomness corresponding to commitment of zero token
+
 	GrpPoint pubKey[MAX_BIT_LENGTH];
 	
 	// OT Parameters
@@ -80,7 +85,9 @@ struct BBMemoryBidder
 	GrpPoint T;
 
 	GrpPoint bitCode[MAX_BIT_LENGTH];
-	GrpPoint OTPostBox[MAX_BIDDERS][MAX_BIT_LENGTH]; // To receive the OT message C_1 posted by other bidders
+	GrpPoint OTPostBox_1[MAX_BIDDERS][MAX_BIT_LENGTH]; // To receive the OT message C_1 posted by other bidders (actual bit code)
+	GrpPoint OTPostBox_0[MAX_BIDDERS][MAX_BIT_LENGTH]; // To receive the OT message C_0 posted by other bidders (0-token)
+
 
 	bool bidBits[MAX_BIT_LENGTH];
 
@@ -104,6 +111,7 @@ struct BulletinBoard
 	bool computeStageDone[MAX_BIDDERS];
 	bool updatedBB[MAX_BIDDERS][MAX_BIT_LENGTH];
 	bool verifyStageDone[MAX_BIDDERS];
+	bool zeroTokenProduced[MAX_BIDDERS];
 
 	bool computeBit[MAX_BIDDERS][MAX_BIT_LENGTH]; // All bidders
 	bool winBit[MAX_BIT_LENGTH];
@@ -113,6 +121,8 @@ struct BulletinBoard
 	int winnerClaim;
 	zqPoint xWinner[MAX_BIT_LENGTH]; // Winner's private key for 0 bit code.
 	zqPoint rWinner[MAX_BIT_LENGTH]; // Winner's private key for 1 bit code.
+
+
 
 // Winner's OT 2nd msg randomness.
 	zqPoint sWinner[MAX_BIT_LENGTH]; 
