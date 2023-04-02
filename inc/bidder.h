@@ -76,6 +76,9 @@ public:
 		for(uint j = 0; j < MAX_BIT_LENGTH; j++)
 		{
 			bitcode[j] = new GroupElement(grp);	
+			bitCommit[j] = new GroupElement(grp);
+			pubKey[j] = new GroupElement(grp);
+			yCode[j] = new GroupElement(grp);
 
 			zeroToken[j] = new GroupElement(grp);	
 			ztCommit[j] = new GroupElement(grp);	
@@ -197,6 +200,8 @@ public:
 
 	bool winBit[MAX_BIT_LENGTH]; // The winning bits during each round
 
+	bool computeBit[MAX_BIT_LENGTH]; // Computed bits for each round
+
 	uint value;
 	Group *grp; // The Group on which all crypto primitives are based
 	BBMemoryBidder *bidderBB; // Pointer to the bulletin board where bidder can write its artefacts
@@ -207,6 +212,8 @@ public:
 	BIGNUM* x[MAX_BIT_LENGTH]; // Private key for computing the 0-bit code
 	BIGNUM* r[MAX_BIT_LENGTH]; // Private key for computing the 1-bit code
 
+	BIGNUM * a[MAX_BIT_LENGTH]; // Randomness used for bit commitments
+
 	unsigned char keyHash[SHA256_DIGEST_LENGTH]; // Hash of the private keys
 
 	BIGNUM* s[MAX_BIT_LENGTH]; // Randomness used during OT 2nd message
@@ -214,6 +221,10 @@ public:
 
 
 	GroupElement *bitcode[MAX_BIT_LENGTH]; // Bit codes used during the computation stage
+	GroupElement *bitCommit[MAX_BIT_LENGTH]; // Commitments to individual bits of bid value
+	GroupElement *pubKey[MAX_BIT_LENGTH]; // Public keys
+	GroupElement *yCode[MAX_BIT_LENGTH]; // Y_j - used for encoding the 0-bit
+
 	GroupElement zeroBitCode; // Place holder to store zero bit codes during a round
 
 
@@ -221,6 +232,8 @@ public:
 
 	BIGNUM * beta[MAX_BIT_LENGTH];          // OT first message randomness
 	BIGNUM * invbeta[MAX_BIT_LENGTH];       // Inverse value - used during message retrieval
+
+
 
 	// OT first message parameters
 	GrpPoint G0[MAX_BIT_LENGTH];
