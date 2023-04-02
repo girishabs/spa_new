@@ -67,7 +67,7 @@ int main(int argc, char const *argv[])
 			bidder.protocolSetupStage();
 			//printf("Finished setup for bidder %d\n",id);
 			bidder.protocolComputeStageBidder();
-			//bidder.protocolVerificationStage();
+			bidder.protocolVerificationStage();
 			
 			break;	
 		}
