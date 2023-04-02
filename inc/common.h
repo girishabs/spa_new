@@ -25,13 +25,25 @@ typedef unsigned int uint;
 // Note that this change recompiles all files.
 
 #define MAX_BIT_LENGTH 10
-#define MAX_BIDDERS 10
+#define MAX_BIDDERS 3
 
 
 #define D 1000
 #define ADDR_Verify 999
 
 typedef bool bit_t;
+
+#define NUM_PROOF_CLAUSES  	3
+#define NUM_PROOF_TOKENS	11
+#define NUM_RAND 8
+
+struct  ProofPackSerial
+{
+	zqPoint gamma[NUM_PROOF_CLAUSES]; // Corresponds to gamma in the paper
+	zqPoint sToken[NUM_PROOF_TOKENS]; // Corresponds to tokens s in the paper
+};
+
+
 
 
 typedef struct publicParam
@@ -90,6 +102,8 @@ struct BBMemoryBidder
 
 
 	bool bidBits[MAX_BIT_LENGTH];
+
+	ProofPackSerial pPack[MAX_BIT_LENGTH];
 
 #ifdef MUTEX	
 	pthread_mutex_t ot_mutex;
