@@ -239,7 +239,7 @@ BIGNUM * Group::getRandomNumber()
 	BN_CTX *ctx = NULL;
     BIGNUM *k; 
       
-    k = BN_new(); // Place holder for the order of group
+    k = BN_new(); 
 
 	if (!BN_pseudo_rand(k, numBitsInOrder, 0, 0))
 	{
