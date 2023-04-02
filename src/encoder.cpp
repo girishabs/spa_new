@@ -12,6 +12,7 @@ Encoder::Encoder(Group *group)
 
 uint Encoder::oneBitEncode(GroupElement *ret, BIGNUM *r)
 {
+
 	return grp->power(ret, grp->g, r);		
 }
 uint Encoder::zeroBitEncode(GroupElement *ret, BIGNUM *x, uint id, uint round, BulletinBoard* bb)
@@ -21,7 +22,7 @@ uint Encoder::zeroBitEncode(GroupElement *ret, BIGNUM *x, uint id, uint round, B
 	computeZeroBase(&y, id, round, bb);
 #ifdef DEBUG	
 	printf("y[%d][%d] is:\n", id, round);
-	grp->printGroupElement(&y);
+	grp->printGroupElement(yCode);
 	printf("Private Key [%d][%d] is:\n", id,round);
 	BN_print_fp(stdout, x);
 	cout << endl;
