@@ -25,7 +25,7 @@ typedef unsigned int uint;
 // Note that this change recompiles all files.
 
 #define MAX_BIT_LENGTH 10
-#define MAX_BIDDERS 3
+#define MAX_BIDDERS 100
 
 
 #define D 1000

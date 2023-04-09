@@ -128,7 +128,7 @@ void Bidder::initBidder()
 
             grp->elementMultiply(&e, &e, grp->T1); // H1 = H0.T1 = h^beta.T1
             H1[j] = e.gpt;
-
+#ifdef RATIONAL
             // Pick random values for zeroToken and its commitment
             omega[j] = grp->getRandomNumber(); 
             delta[j] = grp->getRandomNumber();
@@ -138,7 +138,7 @@ void Bidder::initBidder()
 
             grp->elementMultiply(&e, &f, zeroToken[j]); // ztCommitment = g^omega . h^delta
             bidderBB->ztCommit[j] = e.gpt; // Copy the commitment to BB
-
+#endif // RATIONAL
 
         }
         
@@ -314,7 +314,9 @@ void * OTUpdate(void *input)
     // Send OT messages to other parties
     bidder->bb->bidderBB[i].OTPostBox_1[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)
 
-    // Similarly encoding for M_0 is: C_0 = (G)^s . (H)^t . zeroToken_ij (where zeroToken_ij is the 0-token for j'th round.    
+#ifdef RATIONAL
+    // Similarly encoding for M_0 is: C_0 = (G)^s . (H)^t . zeroToken_ij (where zeroToken_ij is the 0-token for j'th round.   
+
     grp->power(&e, &G_ij, bidder->s[j]); // Perform (G)^s
     grp->power(&f, &H_ij, bidder->t[j]); // Perform (H)^t 
 
@@ -324,7 +326,7 @@ void * OTUpdate(void *input)
 
 
     bidder->bb->bidderBB[i].OTPostBox_0[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)    
-
+#endif // RATIONAL                
     pthread_exit(NULL);    
 }
 
@@ -460,6 +462,7 @@ PStage Bidder::protocolComputeStageBidder()
             // Send OT messages to other parties
             bb->bidderBB[i].OTPostBox_1[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)
 
+#ifdef RATIONAL
             // Similarly encoding for M_0 is: C_0 = (G)^s . (H)^t . zeroToken_ij (where zeroToken_ij is the 0-token for j'th round.    
             grp->power(&e, &G_ij, s[j]); // Perform (G)^s
             grp->power(&f, &H_ij, t[j]); // Perform (H)^t 
@@ -470,7 +473,8 @@ PStage Bidder::protocolComputeStageBidder()
 
 
             bb->bidderBB[i].OTPostBox_0[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)
-#endif
+#endif // RATIONAL                            
+#endif // THREADS
 
         
         }    
@@ -521,11 +525,13 @@ PStage Bidder::protocolComputeStageBidder()
                 // printf("The received bit code[%d][%d] is:\n",i,j);
                 // grp->printGroupElement(bidderBitcode[i]);
             }
+#ifdef RATIONAL   
             else
-            {    
+            {            
                 GroupElement C0 = GroupElement(grp, &bidderBB->OTPostBox_0[i][j]); // Retrieve the message C0 (0-token) sent by bidder[i] for round j                
                 grp->elementMultiply(bidderZToken[i][j],&C0,&a); // Retrieve zeroToken from i'th party            
             }
+#endif // RATIONAL             
 
         }
         if(computeBit[j]) 
