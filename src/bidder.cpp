@@ -153,7 +153,7 @@ void Bidder::initBidder()
         bidderBitcode[i] = new GroupElement(grp);    
     } 
 
-
+#ifdef RATIONAL
     for(j = 0; j < MAX_BIT_LENGTH; j++)
     {
         // Need to generate commitments for each bit in the bid.
@@ -168,6 +168,7 @@ void Bidder::initBidder()
         bidderBB->bitCommit[j] = bitCommit[j]->gpt;
 
     }
+#endif //RATIONAL    
     
 
 #ifdef MUTEX
