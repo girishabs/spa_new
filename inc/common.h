@@ -3,10 +3,15 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+using namespace std;
+
+
 #include <bits/stdc++.h>
 #include <linux/mman.h>
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
+using namespace boost::interprocess;
+
 #include <cstdint>
 #include <openssl/sha.h>
 #include <pthread.h>
@@ -14,8 +19,7 @@
 
 
 
-using namespace std;
-using namespace boost::interprocess;
+
 
 
 
@@ -25,7 +29,7 @@ typedef unsigned int uint;
 // Note that this change recompiles all files.
 
 #define MAX_BIT_LENGTH 10
-#define MAX_BIDDERS 100
+#define MAX_BIDDERS 15
 
 
 #define D 1000

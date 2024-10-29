@@ -1,3 +1,6 @@
+/*
+ * This source file implements the SPA protocol. The protocol is divided into various phases as in the paper: https://eprint.iacr.org/2024/1011.
+ */ 
 #include <iostream>
 #include <cstdlib>
 #include <pthread.h>
@@ -12,9 +15,8 @@ using namespace boost::interprocess;
 
 
 /* This procedure implements the setup stage of the protocol. It proceeds as follows:
- * Bidder registers for the auction by sending the security deposit D.
  * After obtaining the public parameters, bidder initializes its internal parameters.
- * Generates the commitment for its private bid value.
+ * Generates the commitment for bits of its private bid value.
  * Selects private keys for the auction rounds.
  * Generates corresponding public keys. 
  * Write commitments and public keys on to the bulletin board.
@@ -128,7 +130,7 @@ void Bidder::initBidder()
 
             grp->elementMultiply(&e, &e, grp->T1); // H1 = H0.T1 = h^beta.T1
             H1[j] = e.gpt;
-#ifdef RATIONAL
+
             // Pick random values for zeroToken and its commitment
             omega[j] = grp->getRandomNumber(); 
             delta[j] = grp->getRandomNumber();
@@ -138,7 +140,7 @@ void Bidder::initBidder()
 
             grp->elementMultiply(&e, &f, zeroToken[j]); // ztCommitment = g^omega . h^delta
             bidderBB->ztCommit[j] = e.gpt; // Copy the commitment to BB
-#endif // RATIONAL
+
 
         }
         
@@ -153,7 +155,7 @@ void Bidder::initBidder()
         bidderBitcode[i] = new GroupElement(grp);    
     } 
 
-#ifdef RATIONAL
+
     for(j = 0; j < MAX_BIT_LENGTH; j++)
     {
         // Need to generate commitments for each bit in the bid.
@@ -168,44 +170,10 @@ void Bidder::initBidder()
         bidderBB->bitCommit[j] = bitCommit[j]->gpt;
 
     }
-#endif //RATIONAL    
+ 
     
 
-#ifdef MUTEX
-    /* set OT mutex shared between processes */
-    pthread_mutexattr_t mattr;
-    pthread_mutexattr_init(&mattr);
-    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&bb->bidderBB[id].ot_mutex, &mattr);
-    
-    /* set OT condition shared between processes */
-    pthread_condattr_t cattr;
-    pthread_condattr_init(&cattr);
-    pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&bb->bidderBB[id].ot_condition, &cattr);
-    
-    /* set BC mutex shared between processes */
-    pthread_mutexattr_init(&mattr);
-    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&bb->bidderBB[id].bc_mutex, &mattr);
-    
-    /* set BC condition shared between processes */
-    pthread_condattr_init(&cattr);
-    pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&bb->bidderBB[id].bc_condition, &cattr);
-    
-    /* set BB mutex shared between processes */
-    pthread_mutexattr_init(&mattr);
-    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
-    pthread_mutex_init(&bb->bidderBB[id].bb_mutex, &mattr);
-    pthread_mutexattr_destroy(&mattr);
-    
-    /* set BB condition shared between processes */
-    pthread_condattr_init(&cattr);
-    pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&bb->bidderBB[id].bb_condition, &cattr);
-    pthread_condattr_destroy(&cattr);   
-#endif // MUTEX    
+
 }
 
 
@@ -315,7 +283,7 @@ void * OTUpdate(void *input)
     // Send OT messages to other parties
     bidder->bb->bidderBB[i].OTPostBox_1[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)
 
-#ifdef RATIONAL
+
     // Similarly encoding for M_0 is: C_0 = (G)^s . (H)^t . zeroToken_ij (where zeroToken_ij is the 0-token for j'th round.   
 
     grp->power(&e, &G_ij, bidder->s[j]); // Perform (G)^s
@@ -327,7 +295,7 @@ void * OTUpdate(void *input)
 
 
     bidder->bb->bidderBB[i].OTPostBox_0[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)    
-#endif // RATIONAL                
+
     pthread_exit(NULL);    
 }
 
@@ -387,12 +355,7 @@ PStage Bidder::protocolComputeStageBidder()
             bidderBB->G[j] = G1[j] ;    
             bidderBB->H[j] = H1[j] ; 
         }
-#ifdef MUTEX
-        pthread_mutex_lock(&bb->bidderBB[id].ot_mutex);
-        pthread_cond_signal(&bb->bidderBB[id].ot_condition);
-        printf("Bidder %d: OT Parameters updated in round %d\n",id,j);
-        pthread_mutex_unlock(&bb->bidderBB[id].ot_mutex);
-#endif // MUTEX        
+     
 
         bb->OTParamsUpdated[id][j] = true;   
 
@@ -406,42 +369,14 @@ PStage Bidder::protocolComputeStageBidder()
             if (i == id)
                 continue; // No need to consider self.
             
-#ifdef MUTEX
-            pthread_mutex_lock(&bb->bidderBB[i].ot_mutex);
-            pthread_cond_wait(&bb->bidderBB[i].ot_condition, &bb->bidderBB[i].ot_mutex);
-            printf("Bidder %d: OT Parameters available from bidder %d in round %d\n",id, i,j);
-            pthread_mutex_unlock(&bb->bidderBB[i].ot_mutex);
-#endif // MUTEX        
 
             while(bb->OTParamsUpdated[i][j] != true) // Wait for Bidder i to update the OT parameters.
                 usleep(1);
 
             // Retrieve the OT parameters for bidder[i] (to whom bidder[id] needs to send): zeta, G, H
-#ifdef THREADS     
 
 
 
-//            sem_init(&eval_thr_sem[i], 0, 1);
-
-            // sem_wait(&eval_thr_sem[i]); // Wait for semaphore
-
-            printf("Bidder %d got the OT params from %d; spawning thread.\n",id,i);
-
-            td[i].id = id;
-            td[i].i = i;
-            td[i].j = j;
-            td[i].bit = evalComputeBit[j] ;
-            td[i].bidder = this;
-            rc = pthread_create(&threads[i], NULL, &OTUpdate, (void *)&td[i]);
-            if(rc)
-            {
-                cout << "Error in creating threads for OTUpdate" << rc << endl;
-            }
-
-           
-#endif // THREADS  
-
-#ifndef THREADS
             GroupElement zeta_i = GroupElement(grp, &bb->bidderBB[i].zeta[j]);
             grp->getInverse(&zeta_i); // We are not going to use zeta; Only its inverse is useful
 
@@ -463,7 +398,7 @@ PStage Bidder::protocolComputeStageBidder()
             // Send OT messages to other parties
             bb->bidderBB[i].OTPostBox_1[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)
 
-#ifdef RATIONAL
+
             // Similarly encoding for M_0 is: C_0 = (G)^s . (H)^t . zeroToken_ij (where zeroToken_ij is the 0-token for j'th round.    
             grp->power(&e, &G_ij, s[j]); // Perform (G)^s
             grp->power(&f, &H_ij, t[j]); // Perform (H)^t 
@@ -474,17 +409,12 @@ PStage Bidder::protocolComputeStageBidder()
 
 
             bb->bidderBB[i].OTPostBox_0[id][j] = e.gpt; // Post the OT message to Bidder_i's postbox, at the entry (id,j)
-#endif // RATIONAL                            
-#endif // THREADS
+                          
+
 
         
         }    
-#ifdef MUTEX
-        pthread_mutex_lock(&bb->bidderBB[id].bc_mutex);
-        pthread_cond_signal(&bb->bidderBB[id].bc_condition);
-        printf("Bidder %d: Bit codes sent in round %d\n",id,j);
-        pthread_mutex_unlock(&bb->bidderBB[id].bc_mutex);
-#endif // MUTEX        
+     
 
         bb->sentBitCodes[id][j] = true;
 
@@ -502,12 +432,7 @@ PStage Bidder::protocolComputeStageBidder()
                 continue; // Ignore self
             }
             // printf("Bidder %d is waiting for bidder %d to send bit code in round %d\n",id, i,j);
-#ifdef MUTEX
-            pthread_mutex_lock(&bb->bidderBB[i].bc_mutex);
-            pthread_cond_wait(&bb->bidderBB[i].bc_condition, &bb->bidderBB[i].bc_mutex);
-            printf("Bidder %d: Bit codes available from bidder %d\n in round %d",id, i,j);
-            pthread_mutex_unlock(&bb->bidderBB[i].bc_mutex);
-#endif // MUTEX        
+     
 
             while(bb->sentBitCodes[i][j] == false)
                 usleep(1); // Wait for all other bidders to send their bit codes    
@@ -526,13 +451,13 @@ PStage Bidder::protocolComputeStageBidder()
                 // printf("The received bit code[%d][%d] is:\n",i,j);
                 // grp->printGroupElement(bidderBitcode[i]);
             }
-#ifdef RATIONAL   
+
             else
             {            
                 GroupElement C0 = GroupElement(grp, &bidderBB->OTPostBox_0[i][j]); // Retrieve the message C0 (0-token) sent by bidder[i] for round j                
                 grp->elementMultiply(bidderZToken[i][j],&C0,&a); // Retrieve zeroToken from i'th party            
             }
-#endif // RATIONAL             
+
 
         }
         if(computeBit[j]) 
@@ -572,12 +497,7 @@ PStage Bidder::protocolComputeStageBidder()
         //printf("Bidder %d: Written Bit code[%d][%d] is:\n",id, id,j);
         //grp->printGroupElement(bitcode[j]);
 
-#ifdef MUTEX        
-        pthread_mutex_lock(&bb->bidderBB[id].bb_mutex);
-        pthread_cond_signal(&bb->bidderBB[id].bb_condition);
-        printf("Bidder %d: BB Updated in round %d\n",id, j);
-        pthread_mutex_unlock(&bb->bidderBB[id].bb_mutex);
-#endif // MUTEX        
+      
 
         bb->updatedBB[id][j] = true;
 
@@ -589,12 +509,7 @@ PStage Bidder::protocolComputeStageBidder()
             if(i == id)
                 continue;
             //printf("Bidder %d is waiting for bidder %d to write bit code to BB in round %d\n",id, i,j);
-#ifdef MUTEX            
-            pthread_mutex_lock(&bb->bidderBB[i].bb_mutex);
-            pthread_cond_wait(&bb->bidderBB[i].bb_condition, &bb->bidderBB[i].bb_mutex);
-            printf("Bidder %d: Bit codes available on BB from bidder %d in round %d\n",id, i,j);
-            pthread_mutex_unlock(&bb->bidderBB[i].bb_mutex);
-#endif // MUTEX        
+      
 
             while(!bb->updatedBB[i][j])
                 usleep(1);
@@ -706,27 +621,13 @@ void Bidder::protocolVerificationStage()
 
         if(winBit[j] == false)
         {
-/*
-            pData->cj = NULL;
-            pData->Bj = NULL;
-            pData->Bj_prev = NULL;
-            pData->Yj = NULL;
-            pData->Yj_prev = NULL;
-            pData->Xj = NULL;
-            pData->Xj_prev = NULL;
 
-            BN_zero(pData->aj);
-            BN_zero(pData->xj);
-            BN_zero(pData->xj_prev);
-            BN_zero(pData->rj);
-            BN_zero(pData->rj_prev);
-*/
             continue;
         }
         if(winBit[j] == 1 && prevDeciderRnd == 0) // There has been no decider round so far
             prevDeciderRnd = j;
         
-        printf("Bidder %d: computeBit[%d] = %d, winBit[%d] = %d, prevDeciderRnd = %d, bitsOfBid[%d]=%d\n", id, j, computeBit[j], j, winBit[j], prevDeciderRnd, j, bitsOfBid[j]);
+        // printf("Bidder %d: computeBit[%d] = %d, winBit[%d] = %d, prevDeciderRnd = %d, bitsOfBid[%d]=%d\n", id, j, computeBit[j], j, winBit[j], prevDeciderRnd, j, bitsOfBid[j]);
 
         pData->cj = bitCommit[j];
         pData->Bj = bitcode[j];
@@ -811,278 +712,14 @@ void Bidder::protocolVerificationStage()
         else 
             printf("*****NIZK proof rejected******\n\n\n");
     }
-#ifdef COMMENT
-    char name[16];
-    
-    sprintf(name, "bidderSyn-%d",id); // Each semaphore has a name of the form "bidder-<id>". E.g.: Bidder 12 has name "bidder-12"
 
-    bidder_sync_sem = sem_open(name, O_CREAT, 0777, 0);
-    if(bidder_sync_sem == SEM_FAILED)
-    {
-        perror("bidder_sync_sem: Semaphore creation failed");
-    }
-    
-    if(bb->winningBid >= bidval) //Not a winner, so quit
-    {
-        sem_post(bidder_sync_sem);
-        bb->verifyStageDone[id] = true;
-        return;
-    }
-#endif // COMMENT    
 
 }
 
 
 
 
-#ifdef COMMENT
 
-void Eval::protocolVerificationStage()
-{
-    /*
-    // In this stage computation has been completed and need to check the 
-    // validity of claims. A winner of the auction is expected to provide proof 
-    // of winning. 
-    // Winner should provide the randomness used for commitment 
-    // An evalutor who wins the auction needs to provide sum of beta values used 
-    // for OT durng the last decider round. 
-    // For this, Eval writes $\delta_j = \sum_{i=1}^n \alpha_{ij}$ for $j \in [l]$ to BB.
-    // 
-    */
-    //grp->printGroupParams();
-    
-
-    if(bb->winningBid == bidval) //Winner!
-    {
-        BN_CTX *ctx = BN_CTX_new();
-
-        bb->winnerClaim = id;
-
-        // Write all private keys to the BB
-        for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-        {
-            BN_bn2bin(x[j], bb->xWinner[j]);
-        // printBuffer(bb->xWinner[j], MAX_BIG_NUM_SIZE);
-
-            BN_bn2bin(r[j], bb->rWinner[j]);
-        // printBuffer(bb->rWinner[j], MAX_BIG_NUM_SIZE);
-            BN_bn2bin(s[j], bb->sWinner[j]);
-
-            BN_bn2bin(t[j], bb->tWinner[j]);
-        }
-
-        GroupElement e = GroupElement(grp);
-
-
-        if(id == 0)
-        {
-            for(uint j=0; j < MAX_BIT_LENGTH; j++)
-            {
-                BN_set_word(delta[j], 0);
-                for(uint i = 1; i < MAX_BIDDERS; i++)
-                {
-                    BN_mod_add(delta[j], delta[j], beta[i][j], grp->q, ctx);
-                }
-                n = BN_num_bytes(delta[j]);
-#ifdef DEBUG                
-                printf("\nEval's delta[%d] is \n", j);
-                BN_print_fp(stdout, delta[j]);
-#endif                
-                BN_bn2bin(delta[j], bb->evalWinProof[j]); // Write proof to BB
-            }
-        }
-
-        BN_CTX_free(ctx);
-    }
-    bb->verifyStageDone[id] = true;
-}
-void Bidder::announceWinner()
-{
-    uint winBid = 0;
-    uint lastDecider = 0;
-    for(uint j = 0; j < MAX_BIT_LENGTH; j++)
-    {
-        if(bb->winBit[j])
-        {
-            winBid = winBid + exp(2, MAX_BIT_LENGTH-j-1);
-            lastDecider = j;
-        }
-        //printf("Computed winning bid value is %d\n", winBid);
-    }
-    bb->winningBid = winBid;
-
-    printf("Winning bid value is %d\n", winBid);
-    printf("Last decider round is %d\n", lastDecider);
-}
-
-/*
- * This function interacts with the winner to verify that the bit codes used by the winner during each round
- * correspond the bits of winning bid.
-*/
-bool Bidder::verifyWinnerClaim()
-{
-
-    bool retval = false;
-    
-    uint winId = -1;
-    /*
-     The evaluator also needs to retrieve the bitcodes used by the winner;
-     Construct fresh bit codes using the private keys shared.
-     And compare the two.
-    */
-
-    char name[16];
-
-    for(uint i = 1; i < MAX_BIDDERS; i++)
-    {
-        if(bb->winnerClaim != -1)
-        {
-            winId = bb->winnerClaim;
-            break;
-        }
-        usleep(10);
-        sprintf(name, "bidderSyn-%d",i); // Each semaphore has a name of the form "bidder-<id>". E.g.: Bidder 12 has name "bidder-12"
-
-        eval_sync_sem[i] = sem_open(name, O_CREAT, 0777, 1);
-        if(eval_sync_sem[i] == SEM_FAILED)
-        {
-            perror("eval_sync_sem: Semaphore creation failed");
-        }
-        // sem_wait(eval_sync_sem[i]);
-        while(!bb->verifyStageDone[i]); // Wait till ith bidder is done with verification stage.
-    }
-    printf("Winner Id is %d\n", winId);
-
-    if(winId == 0)
-    {
-        return true;
-    }
-
-    // Retrieval of bit codes used by winner during OT
-    // B_j = C_j^0 * G^{-s} * H^{-t}
-    GroupElement e = GroupElement(grp);
-    GroupElement f = GroupElement(grp);
-    GroupElement u = GroupElement(grp);
-    GroupElement v = GroupElement(grp);
-    GrpPoint G,H;
-
-    GroupElement *origBitCode[MAX_BIT_LENGTH];
-    GroupElement *claimBitCode[MAX_BIT_LENGTH];
-
-
-    BIGNUM * sj = BN_new();
-    BIGNUM * tj = BN_new();
-    for(uint j =0; j < MAX_BIT_LENGTH; j++)
-    {
-
-        origBitCode[j] = new GroupElement(grp);
-
-        if(evalComputeBit[j])
-        {
-
-            G = G1[winId][j];
-            H = H1[winId][j];
-        }
-        else
-        {
-            //printf("G0[%d][%d] = \n",winId,j);
-            //e.printGroupPoint(&G0[winId][j]);
-            G = G0[winId][j];
-            H = H0[winId][j];
-        }
-
-        GroupElement d = GroupElement(grp, &G);
-        GroupElement e = GroupElement(grp, &H);
-
-
-
-        //printf("element G[%d][%d] is \n",winId,j);
-        //grp->printGroupElement(&d);
-
-        //printf("element H[%d] is \n",j);
-        //grp->printGroupElement(&e);
-
-        BN_bin2bn(bb->sWinner[j],MAX_BIG_NUM_SIZE,sj);
-        BN_bin2bn(bb->tWinner[j],MAX_BIG_NUM_SIZE,tj);
-
-        //printf("sj = \n");
-        //BN_print_fp(stdout, sj);
-        //cout << endl;
-        //printf("tj = \n");
-        //BN_print_fp(stdout, tj);
-        //cout << endl;
-
-        grp->getInverse(&d);
-        grp->getInverse(&e);
-        //printf("element G inverse[%d][%d] is \n",winId,j);
-        //grp->printGroupElement(&d);
-
-        grp->power(&u,&d, sj);
-        grp->power(&v,&e, tj);
-        grp->elementMultiply(&f, &u, &v);
-
-        GroupElement a = GroupElement(grp, &bb->bidderBB[winId].msgEnc_1[j]);
-
-        grp->elementMultiply(origBitCode[j], &f, &a);
-    }
-
-    // Compute the claimed bit codes for winner
-    BIGNUM * xj = BN_new();
-    BIGNUM * rj = BN_new();
-    for(uint j=0; j < MAX_BIT_LENGTH; j++)
-    {
-        claimBitCode[j] = new GroupElement(grp);
-        if(bb->winBit[j])
-        {
-            BN_bin2bn(bb->rWinner[j], MAX_BIG_NUM_SIZE,rj);
-            enc->oneBitEncode(claimBitCode[j], rj);
-        }
-        else
-        {
-            BN_bin2bn(bb->xWinner[j], MAX_BIG_NUM_SIZE,xj);
-            enc->zeroBitEncode(claimBitCode[j], xj, winId, j, bb);
-        }
-    }
-
-    // Compare the claimed vs original bit codes
-    for(uint j=0; j < MAX_BIT_LENGTH; j++)
-    {
-        //printf("Claimed %d bit code %d is \n",evalComputeBit[j], j);
-        //grp->printGroupElement(claimBitCode[j]);
-
-        //printf("Original %d bit code %d is \n",evalComputeBit[j],j);
-        //grp->printGroupElement(origBitCode[j]);
-
-        if(grp->compareElements(claimBitCode[j],origBitCode[j]) == 0)
-        {
-            //printf("The claimed bit code %d for winner %d is same as original bit code\n", j, winId);
-            retval = true;
-
-        }
-        else
-        {
-            printf("The claimed bit code %d for winner %d is not same as original bit code\n",j, winId); 
-            BN_bn2bin(beta[winId][j], bb->evalAlpha);
-            retval = false;
-            goto cleanup;
-        }
-
-    }    
-cleanup:
-
-    BN_free(sj);
-    BN_free(tj);
-    BN_free(xj);
-    BN_free(rj);
-    for(uint j=0; j < MAX_BIT_LENGTH; j++)
-    {
-        delete claimBitCode[j];
-        delete origBitCode[j];for(uint j=0; j < MAX_BIT_LENGTH; j++);
-    }
-    return retval;
-        
-}
-#endif // COMMENT
 
 void Bidder::printBuffer(unsigned char *buffer, uint n)
 {

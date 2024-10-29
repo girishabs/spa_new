@@ -1,3 +1,8 @@
+/* 
+ * This source file implements the bid encoding that is used in the protocol.
+ * Both encode and decode functions are implemented here.
+ *
+ */
 #include "encoder.h"
 #include "bidder.h"
 
@@ -20,9 +25,9 @@ uint Encoder::zeroBitEncode(GroupElement *ret, BIGNUM *x, uint id, uint round, B
 	uint retval;
 	GroupElement y = GroupElement(grp); 
 	computeZeroBase(&y, id, round, bb);
-#ifdef DEBUG	
+#ifdef ENC_DEBUG	
 	printf("y[%d][%d] is:\n", id, round);
-	grp->printGroupElement(yCode);
+	grp->printGroupElement(&y);
 	printf("Private Key [%d][%d] is:\n", id,round);
 	BN_print_fp(stdout, x);
 	cout << endl;
@@ -49,7 +54,7 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 	{
 		grp->dupGroupElement(&yn, grp->ident);
 		GrpPoint *gpt;
-#ifdef DEBUG		
+#ifdef ENC_DEBUG		
 		printf(" yn before compute is:\n");
 		grp->printGroupElement(&yn);
 #endif		
@@ -59,13 +64,13 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 	 		gpt = &bidderBB->pubKey[round];
 	 		
 	 		GroupElement pubKey = GroupElement(grp, gpt);
-#ifdef DEBUG
+#ifdef ENC_DEBUG
         	printf("yn: publickey[%d][%d] is :\n",i,round);
 	 		grp->printGroupElement(&pubKey);  	
 #endif	 		
             	
 			grp->elementMultiply(&yn, &yn, &pubKey);
-#ifdef DEBUG			
+#ifdef ENC_DEBUG			
 			printf("Computed yn[%d] is:\n",i);
 			grp->printGroupElement(&yn);				
 #endif			
@@ -87,7 +92,7 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 	
 		grp->dupGroupElement(&yd, grp->ident);
 
-#ifdef DEBUG
+#ifdef ENC_DEBUG
 		printf(" yd before compute is:\n");
 		grp->printGroupElement(&yd);
 #endif		
@@ -98,13 +103,13 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 			BBMemoryBidder *bidderBB = static_cast<struct BBMemoryBidder *>(&bb->bidderBB[i]);
 	 		gpt = static_cast< GrpPoint *>(&bidderBB->pubKey[round]);
 	 		GroupElement pubKey = GroupElement(grp, gpt);
-#ifdef DEBUG	 		
+#ifdef ENC_DEBUG	 		
         	printf("yd: publickey[%d][%d] is :\n",i,round);
 	 		grp->printECPoint(pubKey.ep);  	       
 #endif	 		
             
 			grp->elementMultiply(&yd, &yd, &pubKey);
-#ifdef DEBUG			
+#ifdef ENC_DEBUG			
 			printf("Computed yd[%d] is:\n",i);
 			grp->printGroupElement(&yd);
 #endif			
@@ -114,8 +119,7 @@ uint Encoder::computeZeroBase(GroupElement *ret, uint id, uint round, BulletinBo
 	}
 	
 	grp->getInverse(&yd);
-	//printf("Inverted yd is:\n");
-	//grp->printGroupElement(&yd);
+
 		
 		
 	grp->elementMultiply(ret, &yn, &yd);
@@ -128,7 +132,7 @@ bool Encoder::decodeBitcode(uint j, Bidder* bidder)
 	GroupElement e = GroupElement(grp);
 	grp->dupGroupElement(&e, grp->ident);
 
-#ifdef DEBUG
+#ifdef ENC_DEBUG
 	printf("e.ep is\n");
 	grp->printGroupElement(&e);
 
@@ -142,7 +146,7 @@ bool Encoder::decodeBitcode(uint j, Bidder* bidder)
 #endif	
 	for(uint i = 0; i < MAX_BIDDERS ; i++)
 	{
-#ifdef DEBUG		
+#ifdef ENC_DEBUG		
 		printf("e.ep is\n");
 		grp->printGroupElement(&e);
 		printf("bitcode[%d][%d] is:\n",i,j);
@@ -150,7 +154,7 @@ bool Encoder::decodeBitcode(uint j, Bidder* bidder)
 #endif		
 		
 		grp->elementMultiply(&e, &e, bidder->bidderBitcode[i]);
-#ifdef DEBUG		
+#ifdef ENC_DEBUG		
 		printf("Computed e[%d][%d] is:\n",i,j);
 		grp->printGroupElement(&e);
 		printf("bitcode[%d][%d] after decode is:\n",i,j);
@@ -159,7 +163,7 @@ bool Encoder::decodeBitcode(uint j, Bidder* bidder)
 	}
 
 	
-#ifdef DEBUG	
+#ifdef ENC_DEBUG	
 	printf("\nDecoded bit code is :\n");
 	grp->printGroupElement(&e);
 #endif

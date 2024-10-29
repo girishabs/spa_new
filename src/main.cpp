@@ -1,5 +1,5 @@
-/* This file contains the main function. The auction program can be started as either a bidder, evaluator or verifier by 
-* passing parameters 0, 1 or 99. This number is used as the id by the process.
+/* This file contains the main function. The auction program can be started as either a bidder or verifier by 
+* passing two parameters: id which is 1-99 and the bid value. 
 * The program also takes second argument which is for specifying the bid value.
 *
 */
@@ -7,6 +7,7 @@
 #include <string>
 #include "bidder.h"
 #include <cmath>
+#include <iostream>
 
 int main(int argc, char const *argv[])
 {
@@ -67,9 +68,19 @@ int main(int argc, char const *argv[])
 			bidder.protocolSetupStage();
 			//printf("Finished setup for bidder %d\n",id);
 			bidder.protocolComputeStageBidder();
-#ifdef RATIONAL			
+			
+
+
 			bidder.protocolVerificationStage();
-#endif			
+			
+		
+
+			auto st_end = std::chrono::high_resolution_clock::now();
+
+			std::chrono::duration<double, std::milli> st_float_ms = st_end - start;
+
+		    cout << "Total elapsed time is " << 
+    		st_float_ms.count() << " ms for bidder " << id << std::endl;
 			
 			break;	
 		}
@@ -84,12 +95,7 @@ int main(int argc, char const *argv[])
 			cout << "Unrecognized types" << endl;
 	}
 
-	auto st_end = std::chrono::high_resolution_clock::now();
 
-	std::chrono::duration<double, std::milli> st_float_ms = st_end - start;
-
-    std::cout << "Total elapsed time is " << 
-    	st_float_ms.count() << " ms for bidder " << id << std::endl;
 
 	return 0;
 }

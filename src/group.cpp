@@ -1,3 +1,9 @@
+/*
+ * This file implements the procedures required for the group representation and its various operations.
+ * Although we use the additive group from the elliptic curve for our work, the representation and 
+ * abstraction used in this implementation is multiplicative.
+ *
+ */
 #include <iostream>
 #include "common.h"
 
@@ -368,13 +374,13 @@ void Group::eval(BIGNUM* x, BIGNUM* y)
 	BN_mod_sub(y, p, y, p, ctx); // y = p-y
 
 
-#ifdef DEBUG
+#ifdef GRP_DEBUG
 	printf("Eval: x and y are:\n");
 	BN_print_fp(stdout, x);
 	cout << endl;
 	BN_print_fp(stdout, y);
 	cout << endl;
-#endif // DEBUG
+#endif // GRP_DEBUG
 
 	BN_CTX_free(ctx);
 	BN_free(c);
@@ -489,7 +495,5 @@ void Group::chooseNUMSPoints()
     T1 = new GroupElement(ept1, this); 
     
 
-#ifdef DEBUG
-    printGroupParams();
-#endif 
+
 }
