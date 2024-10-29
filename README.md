@@ -1,5 +1,5 @@
-# auction-protocol
-This is for the implementation of the auction protocol.
+# Second Price Auction (SPA) protocol
+This is for the implementation of the Second Price Auction (SPA) protocol as specified in the paper: https://eprint.iacr.org/2024/1011.
 
 The code is written in C++ and makes use of the OpenSSL library for the elliptic curve group operations and BIGNUM operations.
 
@@ -10,12 +10,12 @@ The protocol requires use of a Bulletin Board which is simulated using Shared me
 We also use pthread library for the worker threads used during computation.
 
 The build environment is based on Ubuntu Linux and uses scons. The corresponding sample SConstruct file is also added in the repository. 
-IMPORTANT: The SConstruct file needs to be updated for the local environment to update the include/lib paths for openSSL, Boost libraries.
+*IMPORTANT*: The SConstruct file needs to be updated for the local environment to update the include/lib paths for openSSL, Boost librari*es.
 
 If one makes use of the Sublime-text as the IDE, then setup the environment to make use of scons and then it is very easy to build and run the code.
 
 
-Ample prints have been added to enable debugging. They can be enabled by compiling with option -DDEBUG. 
+Ample prints have been added to enable debugging. They can be enabled by compiling with option -DDEBUG. There are module specific debugs available for the encoding scheme used (-DENC-DEBUG) and group operations (-DGRP_DEBUG).
 
 The script perf can be used for running the auction. The perf script can be configured for choosing suitable number of bidders and their bid values. 
 
