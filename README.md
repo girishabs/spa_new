@@ -1,5 +1,5 @@
 # Second Price Auction (SPA) protocol
-This is for the implementation of the Second Price Auction (SPA) protocol as specified in the paper: https://eprint.iacr.org/2024/1011.
+This is for the optimized implementation of the Second Price Auction (SPA) protocol.
 
 The code is written in C++ and makes use of the OpenSSL library for the elliptic curve group operations and BIGNUM operations.
 
