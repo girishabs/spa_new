@@ -1,0 +1,127 @@
+# This is a small script to invoke the second price auction process. This script
+# invokes individual terminal for each bidder.
+# It begins by removing the shared memory instance from any previous run.
+# The executable "spa" takes two parameters: id and bid value.
+# Both these parameters are mandatory to be provided.
+# The location of executable is assumed to be in $HOME/Documents/prog/spa-code/ directory.
+# This can be changed as required.
+# ***IMPORANT*** 
+# It is important to ensure that the ids are in sequence and correspond exactly
+# to the number of bidders configured in common.h file. For example, in this 
+# case we have used 15 bidders with bit length of 10. Hence the ids are used
+# from 0-14. In case number of bidders is to be increased, change the number in 
+# common.h file for number of bidders and uncomment those in this script.
+# For example, if the number of bidders needs to be changed to 16, change the 
+# MAX_BIDDERS value to 20 in common.h file. Then add more lines to the script as necessary.
+# Similarly for decreasing the number of
+# bidders, change the common.h file and comment out the lines below.
+# If MAX_BIT_LENGTH is changed in common.h file, there is no need to change this
+# file. One can also change the bid values used below. However, note that it 
+# should be matching the bits used for representation. For example, if 5 bits
+# used for MAX_BIT_LENGTH, choose bid values from 1 to 31.
+
+rm /dev/shm/Bulletin\ Board
+rm /dev/shm/sem.*
+killall spa
+spa 0 275 &
+spa 1 579 &
+spa 2 182 &
+spa 3 102 &
+spa 4 813 &
+spa 5 743 &
+spa 6 232 &
+spa 7 132 &
+spa 8 485 &
+spa 9 1012 &
+spa 10 802 &
+spa 11 822 &
+spa 12 842 &
+spa 13 852 &
+spa 14 162 &
+spa 15 235 &
+spa 16 379 &
+spa 17 482 &
+spa 18 502 &
+spa 19 613 &
+#spa 20 743 &
+#spa 21 832 &
+#spa 22 932 &
+#spa 23 185 &
+#spa 24 1002 &
+#spa 25 812 &
+#spa 26 811 &
+#spa 27 841 &
+#spa 28 851 &
+#spa 29 861 &
+#spa 30 271 &
+#spa 31 571 &
+#spa 32 181 &
+#spa 33 101 &
+#spa 34 811 &
+#spa 35 741 &
+#spa 36 231 &
+#spa 37 131 &
+#spa 38 481 &
+#spa 39 312 &
+#spa 40 732 &
+#spa 41 632 &
+#spa 42 532 &
+#spa 43 432 &
+#spa 44 332 &
+#spa 45 232 &
+#spa 46 132 &
+#spa 47 822 &
+#spa 48 922 &
+#spa 49 732 &
+#spa 50 622 &
+#spa 51 577 &
+#spa 52 188 &
+#spa 53 100 &
+#spa 54 811 &
+#spa 55 744 &
+#spa 56 233 &
+#spa 57 133 &
+#spa 58 488 &
+#spa 59 1011 &
+#spa 60 800 &
+#spa 61 888 &
+#spa 62 844 &
+#spa 63 855 &
+#spa 64 866 &
+#spa 65 277 &
+#spa 66 599 &
+#spa 67 122 &
+#spa 68 322 &
+#spa 69 113 &
+#spa 70 443 &
+#spa 71 332 &
+#spa 72 111 &
+#spa 73 484 &
+#spa 74 1019 &
+#spa 75 808 &
+#spa 76 828 &
+#spa 77 848 &
+#spa 78 858 &
+#spa 79 868 &
+#spa 80 772 &
+#spa 81 575 &
+#spa 82 181 &
+#spa 83 101 &
+#spa 84 313 &
+#spa 85 747 &
+#spa 86 333 &
+#spa 87 119 &
+#spa 88 455 &
+#spa 89 1018 &
+#spa 90 202 &
+#spa 91 622 &
+#spa 92 442 &
+#spa 93 952 &
+#spa 94 361 &
+#spa 95 666 &
+#spa 96 777 &
+#spa 97 555 &
+#spa 98 339 &
+#spa 99 444 &
+#spa 100 666 &
+exit

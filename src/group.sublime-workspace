@@ -1,0 +1,318 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"T",
+				"TData"
+			],
+			[
+				"ui",
+				"u_int32_t"
+			],
+			[
+				"fileNa",
+				"fileName16"
+			],
+			[
+				"file",
+				"fileName8"
+			],
+			[
+				"vr",
+				"vrfyPrf"
+			],
+			[
+				"MAX",
+				"MAX_BIT_LENGTH"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P2-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P1-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P0-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Programs/Source/tutorial.mpc",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Programs/Source/fd.mpc",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Scripts/run-common.sh",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Scripts/real-bmr.sh",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Scripts/atlas.sh",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Programs/Source/max.mpc",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P3-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P10-0",
+		"/home/girisha/Documents/prog/spa-code/inc/common.h",
+		"/home/girisha/Documents/prog/spa-code/SConstruct",
+		"/home/girisha/Documents/prog/spa-code/src/encoder.cpp",
+		"/home/girisha/Documents/prog/spa-code/src/bidder.cpp",
+		"/home/girisha/Documents/prog/spa-code/src/group.cpp",
+		"/home/girisha/Documents/prog/spa-code/src/main.cpp",
+		"/home/girisha/Documents/prog/pets_15march_24/hamm_dis/fblkdedup.cpp",
+		"/home/girisha/Documents/prog/pets_15march_24/hamm_dis/checksum.h",
+		"/home/girisha/Documents/prog/pets_15march_24/hamm_dis/fpntest.cpp",
+		"/home/girisha/Documents/prog/auction-protocol/src/bidder.cpp",
+		"/home/girisha/Documents/prog/pets_15march_24/hamm_dis/Makefile",
+		"/home/girisha/Documents/prog/pets_15march_24/hamm_dis/fprint.cpp",
+		"/home/girisha/Documents/prog/setdedup/genRandSet.cpp",
+		"/home/girisha/Documents/prog/setdedup/edit_dis/testrun.sh",
+		"/home/girisha/Documents/prog/setdedup/msg_1020195_t1",
+		"/home/girisha/Documents/prog/setdedup/testrun.sh",
+		"/home/girisha/Documents/prog/setdedup/msg_1020195_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_1020195_t64",
+		"/home/girisha/Documents/prog/setdedup/msg_1019559_t1",
+		"/home/girisha/Documents/prog/setdedup/msg_1019559_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_1019559_t64",
+		"/home/girisha/Documents/prog/setdedup/msg_1018895_t64",
+		"/home/girisha/Documents/prog/setdedup/msg_1018895_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_1018895_t1",
+		"/home/girisha/Documents/prog/setdedup/msg_1017935_t1",
+		"/home/girisha/Documents/prog/setdedup/msg_1017935_t64",
+		"/home/girisha/Documents/prog/setdedup/msg_1017935_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_846515_t64",
+		"/home/girisha/Documents/prog/setdedup/msg_845266_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_845266_t16",
+		"/home/girisha/Documents/prog/setdedup/msg_845266_t1",
+		"/home/girisha/Documents/prog/setdedup/msg_844563_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_844563_t16",
+		"/home/girisha/Documents/prog/setdedup/msg_844563_t1",
+		"/home/girisha/Documents/prog/setdedup/msg_843681_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_843681_t16",
+		"/home/girisha/Documents/prog/setdedup/msg_843681_t1",
+		"/home/girisha/Documents/prog/setdedup/msg_842037_t32",
+		"/home/girisha/Documents/prog/setdedup/msg_842037_t16",
+		"/home/girisha/Documents/prog/setdedup/msg_842037_t1",
+		"/home/girisha/Documents/prog/setdedup/msg_841854_t16",
+		"/home/girisha/Documents/prog/setdedup/msg_841854_t1",
+		"/home/girisha/Documents/prog/setdedup/strio.cpp",
+		"/home/girisha/Documents/prog/setdedup/setDedupEnc.cpp",
+		"/home/girisha/Documents/prog/rand/rnd.cpp",
+		"/home/girisha/Documents/prog/rand/msg_757720",
+		"/home/girisha/Documents/prog/setdedup/msg_754871",
+		"/home/girisha/Downloads/AdvCrypto2023.html",
+		"/home/girisha/Documents/prog/old-mp-spdz-0.3.2/Programs/Source/spa.mpc",
+		"/home/girisha/Documents/prog/old-mp-spdz-0.3.2/Scripts/run-common.sh",
+		"/home/girisha/Documents/prog/old-mp-spdz-0.3.2/perf",
+		"/home/girisha/Documents/prog/old-mp-spdz-0.3.2/perf.s",
+		"/home/girisha/Documents/prog/old-mp-spdz-0.3.2/BMR/config.h",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Programs/Source/spa.mpc",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/perf.s",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/perf.bak",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/perf",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Scripts/bmr-program-run.sh",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Scripts/semi-bmr.sh",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/BMR/config.h",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P71-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P72-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P73-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P74-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P75-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P76-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P77-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P78-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P79-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P80-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P81-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P82-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P83-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P84-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P85-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P86-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P87-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P88-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P89-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P90-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P91-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P92-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P93-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P94-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P95-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P96-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P97-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P98-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P99-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P40-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P41-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P42-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P43-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P44-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P45-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P46-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P47-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P48-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P49-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P50-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P51-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P52-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P53-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P54-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P55-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P56-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P57-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P58-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P59-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P60-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P61-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P62-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P63-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P64-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P65-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P66-0",
+		"/home/girisha/Documents/prog/mp-spdz-0.3.3/Player-Data/Input-P67-0"
+	],
+	"find":
+	{
+		"height": 26.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/User/auctions.sublime-build",
+	"project": "group.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 173.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
