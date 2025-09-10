@@ -21,3 +21,4 @@ The script perf can be used for running the auction. The perf script can be conf
 
 We have chosen static instantiation of the shared memory. Thus, for any changes to configure the number of bidders or bit length of the bid, we change in the common.h file and recompile.
 
+# spa_new
